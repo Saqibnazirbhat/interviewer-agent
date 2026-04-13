@@ -547,7 +547,7 @@ beginBtn.addEventListener('click',async()=>{
       const form=new FormData();form.append('file',S.file);
       const profile=await api('/upload',form,true);
       S.sessionId=profile.session_id;S.profile=profile;
-      if(ghUser){try{const gp=await api('/github',{username:ghUser});S.profile.github_profile=gp;if(gp.top_repos)S.profile.github_repos=gp.top_repos}catch(e){}}
+      if(ghUser){try{const enriched=await api('/enrich',{session_id:S.sessionId,username:ghUser});S.profile.github_username=ghUser;S.profile.github_enriched=true;if(enriched.languages)S.profile.skills=[...new Set([...(S.profile.skills||[]),...enriched.languages])]}catch(e){}}
     }else{
       const gp=await api('/github',{username:ghUser});
       S.sessionId=gp.session_id;S.profile=gp;

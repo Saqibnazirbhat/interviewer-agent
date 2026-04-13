@@ -24,6 +24,7 @@ import secrets
 from fastapi import Cookie, Response
 
 from src.web.models import (
+    EnrichGitHubRequest,
     GitHubRequest,
     OwnerLoginRequest,
     ReportRequest,
@@ -321,6 +322,60 @@ async def github_profile(data: GitHubRequest):
         raise HTTPException(400, str(exc))
     except Exception as exc:
         raise HTTPException(500, f"Failed to fetch GitHub profile: {str(exc)}")
+
+
+@app.post("/enrich")
+async def enrich_with_github(data: EnrichGitHubRequest):
+    """Merge GitHub data into an existing resume-based session profile."""
+    try:
+        session = await store.get(data.session_id)
+        if session is None:
+            raise HTTPException(400, "Invalid or expired session.")
+
+        from src.ingestion.github_fetcher import GitHubFetcher
+        fetcher = GitHubFetcher()
+        github_data = await run_sync(fetcher.fetch_profile, data.username)
+
+        profile = session["profile"]
+
+        # Store full GitHub profile for the question generator's github_context block
+        profile["github_profile"] = github_data
+
+        # Merge GitHub repos into projects if resume had few/none
+        if len(profile.get("projects", [])) < 2:
+            for repo in github_data.get("top_repos", [])[:3]:
+                profile.setdefault("projects", []).append({
+                    "name": repo["name"],
+                    "description": repo.get("description", ""),
+                    "technologies_or_tools": list(repo.get("languages", {}).keys()),
+                })
+
+        # Merge GitHub languages into skills
+        gh_languages = list(github_data.get("languages", {}).keys())
+        existing_skills = [s.lower() for s in profile.get("skills", [])]
+        for lang in gh_languages:
+            if lang.lower() not in existing_skills:
+                profile.setdefault("skills", []).append(lang)
+
+        # Store username for reference
+        profile["github_username"] = data.username
+
+        session["profile"] = profile
+        await store.put(data.session_id, session)
+
+        return JSONResponse({
+            "status": "enriched",
+            "github_username": data.username,
+            "repos_added": len(github_data.get("top_repos", [])),
+            "languages": gh_languages,
+        })
+
+    except HTTPException:
+        raise
+    except (EnvironmentError, ValueError) as exc:
+        raise HTTPException(400, str(exc))
+    except Exception as exc:
+        raise HTTPException(500, f"Failed to enrich with GitHub: {str(exc)}")
 
 
 @app.post("/start")

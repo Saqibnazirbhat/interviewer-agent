@@ -41,6 +41,11 @@ class QuestionGenerator:
                 f"who is a {role} in {industry} with skills in {skills}"
                 if skills else f"who is a {role} in {industry}"
             )
+            # If enriched with GitHub, mention it
+            gh = profile.get("github_profile")
+            if gh and gh.get("top_repos"):
+                top_repo = gh["top_repos"][0]["name"]
+                context += f" and has a GitHub project called {top_repo}"
         else:
             languages = ", ".join(list(profile.get("languages", {}).keys())[:5])
             context = f"(@{profile.get('username', '')}), who works primarily with {languages}"
@@ -114,9 +119,18 @@ class QuestionGenerator:
             gh = profile["github_profile"]
             repos = gh.get("top_repos", [])
             if repos:
-                github_context = "\n  GITHUB PROJECTS:\n"
+                github_context = f"\n  GITHUB PROFILE (@{gh.get('username', 'unknown')}):\n"
+                github_context += f"    Public repos: {gh.get('public_repos', 'N/A')} | Followers: {gh.get('followers', 0)}\n"
+                github_context += f"    Languages: {', '.join(gh.get('languages', {}).keys())}\n"
+                github_context += "    Top repositories:\n"
                 for repo in repos[:3]:
-                    github_context += f"    {repo['name']}: {repo.get('description', 'N/A')} ({repo.get('primary_language', 'N/A')})\n"
+                    langs = ", ".join(repo.get("languages", {}).keys())
+                    commits = "; ".join(c["message"] for c in repo.get("recent_commits", [])[:3])
+                    github_context += (
+                        f"      {repo['name']}: {repo.get('description', 'N/A')}\n"
+                        f"        Languages: {langs} | Stars: {repo.get('stars', 0)}\n"
+                        f"        Recent commits: {commits}\n"
+                    )
 
         role = profile.get("detected_role", "Professional")
         industry = profile.get("industry", "General")

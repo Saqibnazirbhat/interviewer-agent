@@ -38,5 +38,10 @@ class HintRequest(BaseModel):
     question_index: int = Field(default=0, ge=0)
 
 
+class EnrichGitHubRequest(BaseModel):
+    session_id: str = Field(..., min_length=1)
+    username: str = Field(..., min_length=1, max_length=100)
+
+
 class OwnerLoginRequest(BaseModel):
     password: str = Field(..., min_length=1)
