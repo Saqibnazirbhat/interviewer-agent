@@ -1,0 +1,87 @@
+# ========================
+# Environment & Secrets
+# ========================
+.env
+.env.*
+!.env.example
+
+# ========================
+# Private Research
+# ========================
+.private/
+
+# ========================
+# User Data & Sessions
+# ========================
+uploads/*
+!uploads/.gitkeep
+outputs/*
+!outputs/.gitkeep
+data/sessions.db
+data/results.db
+data/temp_audio.wav
+data/research.md
+data/*.json
+!data/.gitkeep
+data/model_config.json
+
+# ========================
+# Logs
+# ========================
+logs/*
+!logs/.gitkeep
+*.log
+
+# ========================
+# Python
+# ========================
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+*.egg
+
+# ========================
+# Virtual Environments
+# ========================
+venv/
+venv2/
+env/
+.venv/
+
+# ========================
+# IDE & OS
+# ========================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ========================
+# Node (MCP tools)
+# ========================
+node_modules/
+package-lock.json
+
+# ========================
+# Testing
+# ========================
+.pytest_cache/
+.coverage
+htmlcov/
+
+# ========================
+# Misc
+# ========================
+cookies.txt
+
+# ========================
+# Claude Code
+# ========================
+.claude/

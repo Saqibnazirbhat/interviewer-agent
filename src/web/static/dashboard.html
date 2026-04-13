@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Comparison Dashboard</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' fill='none' stroke='%23888' stroke-width='1.2'><path d='M16 4l10 6v12l-10 6L6 22V10z'/><path d='M16 10l6 3.5v7L16 24l-6-3.5v-7z' stroke-opacity='.5'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#08080a;--surface:#111113;--surface-2:#18181b;--surface-3:#1e1e21;
+  --border:rgba(255,255,255,.06);--border-2:rgba(255,255,255,.1);
+  --text:#e4e4e7;--text-2:#a1a1aa;--text-3:#52525b;--text-4:#3f3f46;
+  --accent:#a78bfa;--accent-dim:rgba(167,139,250,.08);
+  --green:#4ade80;--green-dim:rgba(74,222,128,.08);
+  --amber:#fbbf24;--amber-dim:rgba(251,191,36,.08);
+  --red:#f87171;--red-dim:rgba(248,113,113,.08);
+  --radius:10px;--radius-sm:6px;
+  --font:'Inter',system-ui,-apple-system,sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:16px;-webkit-font-smoothing:antialiased}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;line-height:1.6}
+
+.container{max-width:1100px;margin:0 auto;padding:40px 24px 96px}
+.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:32px;flex-wrap:wrap;gap:12px}
+.header h1{font-size:1rem;font-weight:600;letter-spacing:-.01em}
+.back-link{color:var(--text-3);text-decoration:none;font-size:.78rem;transition:color .15s}
+.back-link:hover{color:var(--text)}
+
+.filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:24px}
+.filter-input{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);padding:7px 12px;font-family:var(--font);font-size:.78rem;outline:none;transition:border-color .15s}
+.filter-input:focus{border-color:rgba(167,139,250,.15)}
+select.filter-input{cursor:pointer}
+
+.stats-bar{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:24px}
+.stat-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;text-align:center}
+.stat-box .stat-val{font-size:1.3rem;font-weight:600}
+.stat-box .stat-label{font-size:.65rem;color:var(--text-4);text-transform:uppercase;letter-spacing:.06em;margin-top:2px}
+
+.table-wrap{overflow-x:auto;margin-bottom:24px}
+table{width:100%;border-collapse:collapse;font-size:.78rem}
+th{text-align:left;padding:8px 10px;color:var(--text-4);font-weight:600;font-size:.65rem;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border);cursor:pointer;white-space:nowrap;user-select:none}
+th:hover{color:var(--text-3)}
+td{padding:8px 10px;border-bottom:1px solid var(--border);white-space:nowrap}
+tr:hover{background:rgba(255,255,255,.015)}
+tr.selected{background:var(--accent-dim)}
+
+.score-pill{display:inline-block;padding:2px 6px;border-radius:4px;font-weight:600;font-size:.72rem}
+.score-green{background:var(--green-dim);color:var(--green)}
+.score-amber{background:var(--amber-dim);color:var(--amber)}
+.score-red{background:var(--red-dim);color:var(--red)}
+
+.rec-pill{display:inline-block;padding:2px 8px;border-radius:4px;font-weight:600;font-size:.68rem}
+.rec-green{background:var(--green-dim);color:var(--green)}
+.rec-amber{background:var(--amber-dim);color:var(--amber)}
+.rec-red{background:var(--red-dim);color:var(--red)}
+
+.action-link{color:var(--text-3);text-decoration:none;font-size:.75rem;cursor:pointer;transition:color .15s}
+.action-link:hover{color:var(--accent)}
+
+.compare-section{margin-top:32px;display:none}
+.compare-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.compare-header h2{font-size:.88rem;font-weight:600}
+.btn{padding:6px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;font-family:var(--font);font-size:.78rem;font-weight:500;transition:all .15s;background:transparent;color:var(--text-2)}
+.btn:hover{border-color:var(--border-2);color:var(--text)}
+.btn-accent{background:#fff;color:#000;border-color:#fff}
+.btn-accent:hover{background:#e4e4e7}
+
+.compare-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.compare-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px}
+.compare-card h3{font-size:.88rem;font-weight:600;margin-bottom:4px}
+.compare-card .sub{color:var(--text-3);font-size:.78rem;margin-bottom:12px}
+.compare-dim{display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:.78rem}
+.compare-dim .dim-name{color:var(--text-3)}
+.compare-dim .dim-val{font-weight:600}
+
+.chart-container{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:14px}
+.chart-container canvas{max-height:320px}
+
+.empty{text-align:center;padding:64px 16px;color:var(--text-4)}
+.empty svg{margin-bottom:16px;opacity:.3}
+
+.loading{text-align:center;padding:64px 16px;color:var(--text-3)}
+.spinner-bar{width:120px;height:1px;background:var(--surface-3);border-radius:1px;overflow:hidden;margin:0 auto 14px;position:relative}
+.spinner-bar::after{content:'';position:absolute;left:0;top:0;height:100%;width:40%;background:var(--text-4);border-radius:1px;animation:slide 1.2s ease-in-out infinite}
+@keyframes slide{0%{left:-40%}100%{left:100%}}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>Candidate Comparison</h1>
+    <a href="/owner" class="back-link">&larr; Back to Owner Portal</a>
+  </div>
+
+  <div id="loading" class="loading">
+    <div class="spinner-bar"></div>
+    <p style="font-size:.82rem">Loading dashboard...</p>
+  </div>
+
+  <div id="main-content" style="display:none">
+    <div class="filters">
+      <input type="text" class="filter-input" id="filter-name" placeholder="Search candidate...">
+      <select class="filter-input" id="filter-rec">
+        <option value="">All Recommendations</option>
+        <option value="Strong Yes">Strong Yes</option>
+        <option value="Yes">Yes</option>
+        <option value="Maybe">Maybe</option>
+        <option value="No">No</option>
+      </select>
+      <select class="filter-input" id="filter-sort">
+        <option value="completed_at">Newest First</option>
+        <option value="overall_score_desc">Highest Score</option>
+        <option value="overall_score_asc">Lowest Score</option>
+        <option value="candidate_name">Name A-Z</option>
+      </select>
+    </div>
+
+    <div class="stats-bar" id="stats-bar">
+      <div class="stat-box"><div class="stat-val" id="total-candidates">0</div><div class="stat-label">Total</div></div>
+      <div class="stat-box"><div class="stat-val" id="avg-score">0</div><div class="stat-label">Avg Score</div></div>
+      <div class="stat-box"><div class="stat-val" id="strong-yes-count">0</div><div class="stat-label">Strong Yes</div></div>
+      <div class="stat-box"><div class="stat-val" id="flagged-count">0</div><div class="stat-label">Flagged</div></div>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Select</th>
+            <th>Candidate</th>
+            <th>Role</th>
+            <th>Overall</th>
+            <th>Accuracy</th>
+            <th>Depth</th>
+            <th>Comm.</th>
+            <th>Ownership</th>
+            <th>Integrity</th>
+            <th>Rec.</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="results-body"></tbody>
+      </table>
+    </div>
+
+    <div id="empty" class="empty" style="display:none">
+      <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
+        <path d="M32 8l20 12v24L32 56 12 44V20z" stroke="currentColor" stroke-width=".8"/>
+        <path d="M32 20l10 6v12L32 44 22 38V26z" stroke="currentColor" stroke-width=".8" opacity=".5"/>
+      </svg>
+      <p>No completed interviews yet.</p>
+    </div>
+
+    <div class="compare-section" id="compare-section">
+      <div class="compare-header">
+        <h2>Side-by-Side Comparison</h2>
+        <button class="btn" id="clear-compare">Clear Selection</button>
+      </div>
+      <div class="chart-container">
+        <canvas id="radar-chart"></canvas>
+      </div>
+      <div class="compare-grid" id="compare-grid"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+let allResults = [];
+let selected = [];
+let radarChart = null;
+
+async function loadDashboard() {
+  try {
+    const res = await fetch('/api/dashboard');
+    if (!res.ok) { showEmpty(); return; }
+    const data = await res.json();
+    allResults = data.results || [];
+    $('loading').style.display = 'none';
+    $('main-content').style.display = 'block';
+    if (!allResults.length) { showEmpty(); return; }
+    renderStats();
+    renderTable(allResults);
+  } catch (e) {
+    showEmpty();
+  }
+}
+
+function showEmpty() {
+  $('loading').style.display = 'none';
+  $('main-content').style.display = 'block';
+  $('empty').style.display = 'block';
+}
+
+function renderStats() {
+  $('total-candidates').textContent = allResults.length;
+  const avg = allResults.length ? (allResults.reduce((s, r) => s + r.overall_score, 0) / allResults.length).toFixed(1) : 0;
+  $('avg-score').textContent = avg;
+  $('strong-yes-count').textContent = allResults.filter(r => r.recommendation === 'Strong Yes').length;
+  $('flagged-count').textContent = allResults.filter(r => r.flagged_count > 0).length;
+}
+
+function renderTable(results) {
+  const tbody = $('results-body');
+  if (!results.length) {
+    tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;color:var(--text-4);padding:2rem">No matching results</td></tr>';
+    return;
+  }
+  tbody.innerHTML = results.map(r => {
+    const isSelected = selected.includes(r.session_id);
+    const sc = v => { const c = v >= 7 ? 'green' : v >= 5 ? 'amber' : 'red'; return `<span class="score-pill score-${c}">${v}</span>`; };
+    const rc = r.recommendation === 'Strong Yes' || r.recommendation === 'Yes' ? 'green' : r.recommendation === 'Maybe' ? 'amber' : 'red';
+    return `<tr class="${isSelected ? 'selected' : ''}" data-sid="${r.session_id}">
+      <td><input type="checkbox" class="compare-check" data-sid="${r.session_id}" ${isSelected ? 'checked' : ''} ${!isSelected && selected.length >= 2 ? 'disabled' : ''}></td>
+      <td><strong>${esc(r.candidate_name)}</strong></td>
+      <td style="color:var(--text-3)">${esc(r.role)}</td>
+      <td>${sc(r.overall_score)}</td>
+      <td>${sc(r.accuracy)}</td>
+      <td>${sc(r.depth)}</td>
+      <td>${sc(r.communication)}</td>
+      <td>${sc(r.ownership)}</td>
+      <td>${sc(r.integrity_score)}</td>
+      <td><span class="rec-pill rec-${rc}">${r.recommendation}</span></td>
+      <td><a class="action-link" href="/replay/${r.session_id}" target="_blank">Replay</a></td>
+    </tr>`;
+  }).join('');
+
+  tbody.querySelectorAll('.compare-check').forEach(cb => {
+    cb.addEventListener('change', e => {
+      const sid = e.target.dataset.sid;
+      if (e.target.checked) {
+        if (selected.length < 2) selected.push(sid);
+        else { e.target.checked = false; return; }
+      } else {
+        selected = selected.filter(s => s !== sid);
+      }
+      renderTable(getFilteredResults());
+      updateCompare();
+    });
+  });
+}
+
+function updateCompare() {
+  const section = $('compare-section');
+  if (selected.length < 2) { section.style.display = 'none'; return; }
+  section.style.display = 'block';
+
+  const a = allResults.find(r => r.session_id === selected[0]);
+  const b = allResults.find(r => r.session_id === selected[1]);
+  if (!a || !b) return;
+
+  renderRadar(a, b);
+
+  $('compare-grid').innerHTML = [a, b].map(r => {
+    const dims = [['Accuracy', r.accuracy],['Depth', r.depth],['Communication', r.communication],['Ownership', r.ownership],['Integrity', r.integrity_score]];
+    return `<div class="compare-card">
+      <h3>${esc(r.candidate_name)}</h3>
+      <div class="sub">${esc(r.role)} | Overall: ${r.overall_score}/10</div>
+      ${dims.map(([n, v]) => {
+        const c = v >= 7 ? 'var(--green)' : v >= 5 ? 'var(--amber)' : 'var(--red)';
+        return `<div class="compare-dim"><span class="dim-name">${n}</span><span class="dim-val" style="color:${c}">${v}/10</span></div>`;
+      }).join('')}
+      <div style="margin-top:10px;font-size:.75rem;color:var(--text-4)">
+        ${r.answered_count} answered, ${r.skipped_count} skipped | ${r.flagged_count} flags
+      </div>
+      ${r.skills_demonstrated.length ? `<div style="margin-top:6px;font-size:.72rem;color:var(--text-3)">${r.skills_demonstrated.slice(0, 5).join(', ')}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function renderRadar(a, b) {
+  const ctx = $('radar-chart').getContext('2d');
+  if (radarChart) radarChart.destroy();
+
+  radarChart = new Chart(ctx, {
+    type: 'radar',
+    data: {
+      labels: ['Accuracy', 'Depth', 'Communication', 'Ownership', 'Integrity'],
+      datasets: [
+        {
+          label: a.candidate_name,
+          data: [a.accuracy, a.depth, a.communication, a.ownership, a.integrity_score],
+          borderColor: '#a78bfa',
+          backgroundColor: 'rgba(167,139,250,.1)',
+          pointBackgroundColor: '#a78bfa',
+          borderWidth: 1.5,
+        },
+        {
+          label: b.candidate_name,
+          data: [b.accuracy, b.depth, b.communication, b.ownership, b.integrity_score],
+          borderColor: '#4ade80',
+          backgroundColor: 'rgba(74,222,128,.1)',
+          pointBackgroundColor: '#4ade80',
+          borderWidth: 1.5,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      scales: {
+        r: {
+          min: 0, max: 10,
+          ticks: { stepSize: 2, color: '#3f3f46', backdropColor: 'transparent', font:{size:10} },
+          grid: { color: 'rgba(255,255,255,.04)' },
+          angleLines: { color: 'rgba(255,255,255,.04)' },
+          pointLabels: { color: '#52525b', font: { size: 11, family:'Inter' } },
+        },
+      },
+      plugins: {
+        legend: { labels: { color: '#a1a1aa', font: { size: 11, family:'Inter' } } },
+      },
+    },
+  });
+}
+
+function getFilteredResults() {
+  let results = [...allResults];
+  const name = $('filter-name').value.toLowerCase();
+  const rec = $('filter-rec').value;
+  const sort = $('filter-sort').value;
+
+  if (name) results = results.filter(r => r.candidate_name.toLowerCase().includes(name));
+  if (rec) results = results.filter(r => r.recommendation === rec);
+
+  if (sort === 'overall_score_desc') results.sort((a, b) => b.overall_score - a.overall_score);
+  else if (sort === 'overall_score_asc') results.sort((a, b) => a.overall_score - b.overall_score);
+  else if (sort === 'candidate_name') results.sort((a, b) => a.candidate_name.localeCompare(b.candidate_name));
+
+  return results;
+}
+
+function applyFilters() { renderTable(getFilteredResults()); }
+
+$('filter-name').addEventListener('input', applyFilters);
+$('filter-rec').addEventListener('change', applyFilters);
+$('filter-sort').addEventListener('change', applyFilters);
+$('clear-compare').addEventListener('click', () => {
+  selected = [];
+  renderTable(getFilteredResults());
+  updateCompare();
+});
+
+function esc(s) {
+  if (!s) return '';
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+loadDashboard();
+</script>
+</body>
+</html>

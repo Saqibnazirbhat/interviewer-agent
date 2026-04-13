@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Interviewer Agent</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' fill='none' stroke='%23888' stroke-width='1.2'><path d='M16 4l10 6v12l-10 6L6 22V10z'/><path d='M16 10l6 3.5v7L16 24l-6-3.5v-7z' stroke-opacity='.5'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#08080a;--surface:#111113;--surface-2:#18181b;--surface-3:#1e1e21;
+  --border:rgba(255,255,255,.06);--border-2:rgba(255,255,255,.1);
+  --text:#e4e4e7;--text-2:#a1a1aa;--text-3:#52525b;--text-4:#3f3f46;
+  --accent:#a78bfa;--accent-dim:rgba(167,139,250,.08);--accent-border:rgba(167,139,250,.15);
+  --green:#4ade80;--green-dim:rgba(74,222,128,.08);
+  --amber:#fbbf24;--amber-dim:rgba(251,191,36,.08);
+  --red:#f87171;--red-dim:rgba(248,113,113,.08);
+  --radius:10px;--radius-sm:6px;
+  --font:'Inter',system-ui,-apple-system,sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:16px;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;line-height:1.6}
+
+/* Nav */
+.nav{position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:0 24px;height:48px;background:rgba(8,8,10,.85);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom:1px solid var(--border)}
+.nav-brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--text)}
+.nav-logo svg{display:block}
+.nav-name{font-size:.82rem;font-weight:600;letter-spacing:-.01em;color:var(--text-2)}
+
+/* Shell */
+.shell{max-width:680px;margin:0 auto;padding:48px 24px 120px}
+@media(min-width:640px){.shell{padding:64px 32px 120px}}
+
+/* Screen */
+.screen{display:none;opacity:0;transform:translateY(8px)}
+.screen.active{display:block;animation:fadeUp .5s cubic-bezier(.16,1,.3,1) forwards}
+@keyframes fadeUp{to{opacity:1;transform:translateY(0)}}
+
+/* Card */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius)}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:9px 18px;border-radius:var(--radius-sm);border:1px solid transparent;font-family:var(--font);font-size:.82rem;font-weight:500;cursor:pointer;transition:all .15s ease;outline:none;text-decoration:none;color:var(--text)}
+.btn:focus-visible{box-shadow:0 0 0 2px var(--bg),0 0 0 4px rgba(167,139,250,.3)}
+.btn-primary{background:#fff;color:#000;border-color:#fff}
+.btn-primary:hover{background:#e4e4e7}
+.btn-primary:active{transform:scale(.98)}
+.btn-primary:disabled{opacity:.3;cursor:not-allowed;transform:none}
+.btn-secondary{background:var(--surface-2);color:var(--text-2);border-color:var(--border)}
+.btn-secondary:hover{background:var(--surface-3);border-color:var(--border-2);color:var(--text)}
+.btn-danger{background:var(--red-dim);color:var(--red);border-color:transparent}
+.btn-sm{padding:6px 12px;font-size:.78rem}
+.btn-lg{padding:11px 24px;font-size:.85rem}
+.btn-icon{padding:7px;border-radius:var(--radius-sm);background:transparent;border:1px solid var(--border);color:var(--text-3)}
+.btn-icon:hover{background:var(--surface-2);color:var(--text);border-color:var(--border-2)}
+
+/* Badge */
+.badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:4px;font-size:.68rem;font-weight:600;letter-spacing:.03em}
+.badge-accent{background:var(--accent-dim);color:var(--accent)}
+.badge-green{background:var(--green-dim);color:var(--green)}
+.badge-amber{background:var(--amber-dim);color:var(--amber)}
+.badge-red{background:var(--red-dim);color:var(--red)}
+
+/* Input */
+.input{width:100%;padding:9px 14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-family:var(--font);font-size:.85rem;outline:none;transition:border-color .15s}
+.input:focus{border-color:var(--accent-border)}
+.input::placeholder{color:var(--text-4)}
+textarea.input{resize:vertical;min-height:160px;line-height:1.7}
+
+/* Toast */
+.toast{position:fixed;top:56px;left:50%;transform:translateX(-50%) translateY(-120%);z-index:9999;min-width:300px;max-width:440px;background:var(--surface-2);border:1px solid var(--border-2);border-radius:var(--radius);padding:12px 16px;box-shadow:0 8px 32px rgba(0,0,0,.4);transition:transform .3s cubic-bezier(.16,1,.3,1)}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.toast-inner{display:flex;align-items:flex-start;gap:10px}
+.toast-icon{width:16px;height:16px;flex-shrink:0;margin-top:1px}
+.toast-body h4{font-size:.78rem;font-weight:600;margin-bottom:1px}
+.toast-body p{font-size:.78rem;color:var(--text-2);line-height:1.5}
+
+/* Loading */
+.loader{display:flex;flex-direction:column;align-items:center;gap:14px;padding:56px 24px}
+.loader-bar{width:120px;height:1px;background:var(--surface-3);border-radius:1px;overflow:hidden;position:relative}
+.loader-bar::after{content:'';position:absolute;left:0;top:0;height:100%;width:40%;background:var(--text-3);border-radius:1px;animation:loaderSlide 1.2s ease-in-out infinite}
+@keyframes loaderSlide{0%{left:-40%}100%{left:100%}}
+.loader p{font-size:.82rem;color:var(--text-4)}
+
+/* Geometric decoration */
+.geo{pointer-events:none;user-select:none}
+.geo-line{stroke:rgba(255,255,255,.04);fill:none;stroke-width:.8}
+.geo-line-accent{stroke:rgba(167,139,250,.06);fill:none;stroke-width:.8}
+
+/* ================================================================
+   SCREEN 1 — WELCOME
+   ================================================================ */
+.hero{text-align:center;padding:40px 0 48px;position:relative}
+.hero-geo{position:absolute;top:-20px;left:50%;transform:translateX(-50%);opacity:.35}
+.hero-label{font-size:.68rem;font-weight:500;color:var(--text-4);letter-spacing:.1em;text-transform:uppercase;margin-bottom:20px}
+.hero h1{font-size:clamp(1.6rem,3.5vw,2.2rem);font-weight:600;letter-spacing:-.03em;line-height:1.2;color:var(--text)}
+.hero p{color:var(--text-3);font-size:.88rem;margin-top:12px;max-width:420px;margin-inline:auto;font-weight:400}
+
+.cards-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:32px}
+@media(max-width:560px){.cards-row{grid-template-columns:1fr}}
+.upload-card,.github-card{padding:24px}
+.card-head{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.card-head h3{font-size:.85rem;font-weight:600}
+.card-head svg{width:14px;height:14px;color:var(--text-3)}
+.card-sub{font-size:.75rem;color:var(--text-4);margin-bottom:16px}
+
+.dropzone{border:1px dashed var(--border-2);border-radius:var(--radius);padding:28px 16px;cursor:pointer;text-align:center;transition:all .2s;background:transparent}
+.dropzone:hover,.dropzone.over{border-color:var(--text-3);background:rgba(255,255,255,.01)}
+.dropzone.done{border-color:var(--green);border-style:solid;background:var(--green-dim)}
+.dropzone svg{width:24px;height:24px;color:var(--text-4);margin-bottom:8px;display:block;margin-inline:auto}
+.dropzone.done svg{color:var(--green)}
+.dropzone p{font-size:.78rem;color:var(--text-3);line-height:1.6}
+.dropzone .browse{color:var(--text);font-weight:500;text-decoration:underline;text-underline-offset:2px}
+.dropzone .exts{font-size:.65rem;color:var(--text-4);margin-top:4px}
+.dropzone .chosen-file{font-size:.78rem;color:var(--green);font-weight:500;margin-top:4px;word-break:break-all}
+
+.github-field{margin-top:4px}
+.github-field label{font-size:.72rem;color:var(--text-4);margin-bottom:4px;display:block;letter-spacing:.02em}
+.begin-wrap{text-align:center}
+
+/* ================================================================
+   SCREEN 2 — PROFILE
+   ================================================================ */
+.s2-head{margin-bottom:24px}
+.s2-head h2{font-size:1.1rem;font-weight:600;letter-spacing:-.02em}
+.s2-head p{font-size:.8rem;color:var(--text-3);margin-top:4px}
+
+.profile-panel{padding:24px;margin-bottom:24px}
+.profile-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px 24px}
+@media(max-width:560px){.profile-grid{grid-template-columns:1fr}}
+.pf{display:flex;flex-direction:column;gap:2px}
+.pf-label{font-size:.65rem;font-weight:600;color:var(--text-4);text-transform:uppercase;letter-spacing:.06em}
+.pf-val{font-size:.88rem;font-weight:500;color:var(--text)}
+.pf .input{display:none;margin-top:2px}
+.pf .input.vis{display:block}
+.pf .pf-val.hid{display:none}
+.pf-divider{grid-column:1/-1;height:1px;background:var(--border);margin:4px 0}
+
+.projects-row{margin-top:16px}
+.projects-row h4{font-size:.65rem;font-weight:600;color:var(--text-4);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
+.chip{display:inline-flex;padding:4px 12px;border:1px solid var(--border);border-radius:4px;font-size:.75rem;color:var(--text-2);font-weight:400;margin:0 6px 6px 0;background:transparent}
+
+.confirm-row{display:flex;align-items:center;gap:10px;margin-top:16px;flex-wrap:wrap}
+.confirm-row span{font-size:.82rem;color:var(--text-3)}
+
+.persona-heading{font-size:.88rem;font-weight:600;letter-spacing:-.01em;margin:32px 0 14px;color:var(--text-2)}
+.persona-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:32px}
+@media(max-width:560px){.persona-grid{grid-template-columns:1fr}}
+.persona{padding:18px;cursor:pointer;position:relative;overflow:hidden;transition:all .2s}
+.persona:hover{border-color:var(--border-2);background:rgba(255,255,255,.015)}
+.persona.picked{border-color:rgba(167,139,250,.3);background:var(--accent-dim)}
+.persona-icon{width:32px;height:32px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:700;color:rgba(255,255,255,.8);margin-bottom:10px}
+.persona-icon.pi-tech{background:rgba(99,102,241,.2);color:#a5b4fc}
+.persona-icon.pi-mgr{background:rgba(14,165,233,.2);color:#7dd3fc}
+.persona-icon.pi-hr{background:rgba(34,197,94,.2);color:#86efac}
+.persona-icon.pi-exec{background:rgba(168,85,247,.2);color:#d8b4fe}
+.persona h4{font-size:.82rem;font-weight:600;margin-bottom:3px}
+.persona p{font-size:.72rem;color:var(--text-3);line-height:1.5}
+.start-wrap{text-align:center}
+
+/* ================================================================
+   SCREEN 3 — INTERVIEW
+   ================================================================ */
+.iv-bar{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;margin-bottom:12px;flex-wrap:wrap;gap:8px}
+.iv-left{display:flex;align-items:center;gap:10px}
+.iv-left .iv-name{font-size:.82rem;font-weight:500;color:var(--text-2)}
+.iv-tag{font-size:.68rem;font-weight:500;color:var(--text-3);background:var(--surface-2);padding:3px 8px;border-radius:4px;border:1px solid var(--border)}
+.iv-right{display:flex;align-items:center;gap:14px}
+.iv-q-count{font-size:.75rem;color:var(--text-4)}
+.iv-clock{font-variant-numeric:tabular-nums;font-size:.85rem;font-weight:600;color:var(--text-2);transition:color .3s}
+.iv-clock.warn{color:var(--amber)}
+.iv-clock.danger{color:var(--red);animation:timerPulse 1s ease-in-out infinite}
+@keyframes timerPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(1.06)}}
+.iv-timeup-msg{text-align:center;padding:16px;margin-bottom:12px;font-size:.82rem;font-weight:500;color:var(--amber);background:var(--amber-dim);border:1px solid rgba(251,191,36,.1);border-radius:var(--radius);animation:fadeUp .3s ease forwards}
+
+.iv-progress{height:1px;background:var(--surface-3);margin-bottom:28px;overflow:hidden}
+.iv-progress-fill{height:100%;background:var(--text-3);transition:width .5s ease}
+
+.iv-intro{padding:32px 24px;margin-bottom:20px;border-left:2px solid var(--accent-border);text-align:center}
+.iv-intro p{font-size:.92rem;color:var(--text-2);line-height:1.9;font-style:italic;text-align:left}
+.iv-intro-btn{text-align:center;margin-top:24px}
+
+.q-card{padding:24px;margin-bottom:14px;border-left:2px solid var(--border-2)}
+.q-card.followup{border-left-color:var(--amber)}
+.q-meta{display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+.q-num{font-size:.65rem;font-weight:600;color:var(--text-4);text-transform:uppercase;letter-spacing:.04em}
+.q-cat{font-size:.65rem;font-weight:500;color:var(--text-4);text-transform:uppercase;letter-spacing:.04em}
+.q-followup-badge{font-size:.65rem;font-weight:600;padding:2px 8px;border-radius:4px;background:var(--amber-dim);color:var(--amber);letter-spacing:.02em}
+.q-text{font-size:.92rem;line-height:1.8;color:var(--text);font-weight:400}
+
+.ans-wrap{margin-bottom:14px}
+.ans-foot{display:flex;justify-content:space-between;align-items:center;margin-top:8px;flex-wrap:wrap;gap:8px}
+.ans-chars{font-size:.68rem;color:var(--text-4)}
+.ans-btns{display:flex;gap:6px;flex-wrap:wrap}
+
+/* Voice */
+.voice-btn{position:relative;transition:all .2s}
+.voice-btn.recording{background:var(--red-dim);color:var(--red);border-color:rgba(248,113,113,.2);animation:voice-pulse 1.5s ease-in-out infinite}
+@keyframes voice-pulse{0%,100%{box-shadow:0 0 0 0 rgba(248,113,113,.15)}50%{box-shadow:0 0 0 5px rgba(248,113,113,0)}}
+
+/* Feedback */
+.feedback-bar{display:flex;align-items:center;gap:12px;margin-bottom:12px;min-height:24px;padding:0 2px;opacity:0;transition:opacity .35s}
+.feedback-bar.visible{opacity:1}
+.listening-indicator{display:flex;align-items:center;gap:5px}
+.listening-dots{display:flex;gap:3px}
+.listening-dots span{width:3px;height:3px;border-radius:50%;background:var(--text-3);animation:listenPulse 1.4s ease-in-out infinite;opacity:.3}
+.listening-dots span:nth-child(2){animation-delay:.2s}
+.listening-dots span:nth-child(3){animation-delay:.4s}
+@keyframes listenPulse{0%,100%{opacity:.2;transform:scale(.8)}50%{opacity:1;transform:scale(1.2)}}
+.listening-label{font-size:.68rem;color:var(--text-4);font-style:italic}
+.micro-ack{font-size:.72rem;color:var(--text-3);font-style:italic;opacity:0;transition:opacity .3s;white-space:nowrap}
+.micro-ack.show{animation:ackFade 2.5s ease-in-out forwards}
+@keyframes ackFade{0%{opacity:0;transform:translateY(3px)}12%{opacity:1;transform:translateY(0)}75%{opacity:1}100%{opacity:0}}
+.confidence-wrap{display:flex;align-items:center;gap:6px;margin-left:auto}
+.confidence-label{font-size:.62rem;color:var(--text-4);text-transform:uppercase;letter-spacing:.04em;white-space:nowrap}
+.confidence-track{width:60px;height:2px;background:var(--surface-3);border-radius:1px;overflow:hidden}
+.confidence-fill{height:100%;border-radius:1px;transition:width .5s,background .5s;width:0%}
+.confidence-val{font-size:.68rem;font-weight:600;min-width:16px;transition:color .3s}
+
+.hint-banner{background:var(--amber-dim);border:1px solid rgba(251,191,36,.08);border-radius:var(--radius-sm);padding:10px 14px;font-size:.78rem;color:var(--amber);display:none;margin-bottom:12px;align-items:center;gap:8px}
+.hint-banner.vis{display:flex}
+
+/* ================================================================
+   SCREEN 4 — THANK YOU
+   ================================================================ */
+.done-wrap{text-align:center;padding:80px 20px 60px}
+.done-icon{width:48px;height:48px;margin:0 auto 24px}
+.done-wrap h1{font-size:1.3rem;font-weight:600;letter-spacing:-.02em;margin-bottom:12px}
+.done-wrap p{color:var(--text-3);font-size:.85rem;max-width:400px;margin:0 auto;line-height:1.7}
+.done-wrap .sub{color:var(--text-4);font-size:.78rem;margin-top:24px}
+
+/* Utility */
+.hidden{display:none!important}
+.mt-2{margin-top:8px}
+.mt-4{margin-top:16px}
+.text-center{text-align:center}
+
+@media(max-width:480px){
+  .hero h1{font-size:1.4rem}
+  .q-card,.profile-panel,.iv-intro{padding:16px}
+  .iv-bar{padding:8px 12px}
+  .nav{padding:0 16px}
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <a href="/" class="nav-brand">
+    <span class="nav-logo"><svg width="24" height="24" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".6"><path d="M16 4l10 6v12l-10 6L6 22V10z"/><path d="M16 10l6 3.5v7L16 24l-6-3.5v-7z" opacity=".4"/><line x1="16" y1="4" x2="16" y2="10" opacity=".3"/><line x1="26" y1="10" x2="22" y2="13.5" opacity=".3"/><line x1="6" y1="10" x2="10" y2="13.5" opacity=".3"/></svg></span>
+    <span class="nav-name">Interviewer Agent</span>
+  </a>
+</nav>
+
+<div class="shell">
+
+<!-- Toast -->
+<div class="toast" id="toast" style="display:none">
+  <div class="toast-inner">
+    <svg class="toast-icon" id="toast-icon" viewBox="0 0 20 20" fill="currentColor" style="color:var(--red)"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clip-rule="evenodd"/></svg>
+    <div class="toast-body"><h4 id="toast-title" style="color:var(--red)">Error</h4><p id="toast-msg"></p></div>
+  </div>
+</div>
+
+<!-- ============================================================
+     SCREEN 1 — WELCOME
+     ============================================================ -->
+<div class="screen active" id="screen-welcome">
+  <div class="hero">
+    <!-- Geometric hero illustration -->
+    <svg class="hero-geo geo" width="280" height="200" viewBox="0 0 280 200">
+      <path class="geo-line" d="M140 20l80 46v72l-80 46-80-46V66z"/>
+      <path class="geo-line" d="M140 40l60 35v54l-60 35-60-35V75z"/>
+      <path class="geo-line" d="M140 60l40 23v36l-40 23-40-23V83z"/>
+      <ellipse class="geo-line" cx="140" cy="100" rx="18" ry="10"/>
+      <line class="geo-line" x1="140" y1="20" x2="140" y2="60" opacity=".4"/>
+      <line class="geo-line" x1="220" y1="66" x2="200" y2="75" opacity=".4"/>
+      <line class="geo-line" x1="60" y1="66" x2="80" y2="75" opacity=".4"/>
+    </svg>
+    <div class="hero-label">AI-Powered Interviews</div>
+    <h1>Interview smarter,<br>hire better.</h1>
+    <p>Upload a resume or connect a GitHub profile to begin a tailored, adaptive interview.</p>
+  </div>
+
+  <div class="cards-row">
+    <div class="card upload-card">
+      <div class="card-head">
+        <svg viewBox="0 0 20 20" fill="currentColor"><path d="M9.25 13.25a.75.75 0 001.5 0V4.636l2.955 3.129a.75.75 0 001.09-1.03l-4.25-4.5a.75.75 0 00-1.09 0l-4.25 4.5a.75.75 0 101.09 1.03L9.25 4.636v8.614z"/><path d="M3.5 12.75a.75.75 0 00-1.5 0v2.5A2.75 2.75 0 004.75 18h10.5A2.75 2.75 0 0018 15.25v-2.5a.75.75 0 00-1.5 0v2.5c0 .69-.56 1.25-1.25 1.25H4.75c-.69 0-1.25-.56-1.25-1.25v-2.5z"/></svg>
+        <h3>Upload Resume</h3>
+      </div>
+      <p class="card-sub">PDF, DOCX, or plain text</p>
+      <div class="dropzone" id="drop-zone">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4m0 0l-4 4m4-4l4 4"/><path d="M3 17v2a2 2 0 002 2h14a2 2 0 002-2v-2"/></svg>
+        <p>Drag &amp; drop here or <span class="browse">browse</span></p>
+        <p class="exts">.pdf .docx .txt</p>
+      </div>
+      <input type="file" id="file-input" accept=".pdf,.docx,.txt" style="display:none">
+    </div>
+
+    <div class="card github-card">
+      <div class="card-head">
+        <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 0C4.477 0 0 4.477 0 10c0 4.42 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.009-.866-.013-1.7-2.782.603-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.464-1.11-1.464-.908-.62.069-.607.069-.607 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.268 2.75 1.026A9.578 9.578 0 0110 4.836a9.578 9.578 0 012.508.338c1.909-1.294 2.747-1.026 2.747-1.026.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C17.137 18.163 20 14.418 20 10c0-5.523-4.477-10-10-10z" clip-rule="evenodd"/></svg>
+        <h3>GitHub</h3>
+      </div>
+      <p class="card-sub">Enrich profile with repo data</p>
+      <div class="github-field mt-4">
+        <label>GitHub username</label>
+        <input class="input" type="text" id="github-input" placeholder="e.g. torvalds">
+      </div>
+      <p style="font-size:.68rem;color:var(--text-4);margin-top:6px">Leave blank to use resume only</p>
+    </div>
+  </div>
+
+  <div class="begin-wrap">
+    <button class="btn btn-primary btn-lg" id="begin-btn" disabled>Begin Analysis</button>
+  </div>
+
+  <div class="loader hidden" id="welcome-loading">
+    <div class="loader-bar"></div>
+    <p>Analyzing profile...</p>
+  </div>
+</div>
+
+<!-- ============================================================
+     SCREEN 2 — PROFILE & PERSONA
+     ============================================================ -->
+<div class="screen" id="screen-profile">
+  <div class="s2-head">
+    <h2>Candidate Profile</h2>
+    <p>Confirm or edit before proceeding.</p>
+  </div>
+
+  <div class="card profile-panel">
+    <div class="profile-grid">
+      <div class="pf"><span class="pf-label">Full Name</span><span class="pf-val" id="pf-name"></span></div>
+      <div class="pf"><span class="pf-label">Detected Role</span><span class="pf-val" id="pf-role"></span><input class="input" type="text" id="pf-role-edit"></div>
+      <div class="pf"><span class="pf-label">Industry</span><span class="pf-val" id="pf-industry"></span><input class="input" type="text" id="pf-industry-edit"></div>
+      <div class="pf"><span class="pf-label">Seniority</span><span class="pf-val" id="pf-seniority"></span></div>
+      <div class="pf-divider"></div>
+      <div class="pf"><span class="pf-label">Experience</span><span class="pf-val" id="pf-experience"></span></div>
+    </div>
+
+    <div class="projects-row">
+      <h4>Top Projects</h4>
+      <div id="project-tags"></div>
+    </div>
+
+    <div class="confirm-row">
+      <span>Does this look right?</span>
+      <button class="btn btn-sm btn-primary" id="confirm-yes">Confirm</button>
+      <button class="btn btn-sm btn-secondary" id="confirm-no">Edit</button>
+    </div>
+  </div>
+
+  <h3 class="persona-heading">Choose Your Interviewer</h3>
+  <div class="persona-grid" id="persona-grid"></div>
+
+  <div class="start-wrap">
+    <button class="btn btn-primary btn-lg" id="start-btn" disabled>Start Interview</button>
+  </div>
+
+  <div class="loader hidden" id="profile-loading">
+    <div class="loader-bar"></div>
+    <p>Generating personalized questions...</p>
+  </div>
+</div>
+
+<!-- ============================================================
+     SCREEN 3 — INTERVIEW
+     ============================================================ -->
+<div class="screen" id="screen-interview">
+  <div class="hidden" id="iv-bar-wrap">
+    <div class="card iv-bar">
+      <div class="iv-left">
+        <span class="iv-name" id="iv-name"></span>
+        <span class="iv-tag" id="iv-persona"></span>
+      </div>
+      <div class="iv-right">
+        <span class="iv-q-count" id="iv-progress">Q1 / 15</span>
+        <span class="iv-clock" id="iv-timer">100s</span>
+      </div>
+    </div>
+  </div>
+  <div class="iv-progress hidden" id="iv-progress-wrap"><div class="iv-progress-fill" id="iv-progress-bar" style="width:0%"></div></div>
+
+  <!-- Intro -->
+  <div class="card iv-intro hidden" id="iv-intro-card">
+    <p id="iv-intro-text"></p>
+    <div class="iv-intro-btn"><button class="btn btn-primary btn-lg" id="iv-begin-questions">Start Interview</button></div>
+  </div>
+
+  <!-- Question -->
+  <div class="card q-card hidden" id="question-card">
+    <div class="q-meta">
+      <span class="q-num" id="q-number">Q1</span>
+      <span class="q-cat" id="q-category">EXPERIENCE</span>
+      <span class="q-followup-badge hidden" id="q-followup-badge">Follow-up</span>
+    </div>
+    <p class="q-text" id="q-text"></p>
+  </div>
+
+  <!-- Feedback signals -->
+  <div class="feedback-bar" id="feedback-bar">
+    <div class="listening-indicator" id="listening-ind">
+      <div class="listening-dots"><span></span><span></span><span></span></div>
+      <span class="listening-label" id="listening-label">Listening...</span>
+    </div>
+    <span class="micro-ack" id="micro-ack"></span>
+    <div class="confidence-wrap" style="display:none">
+      <span class="confidence-label">Confidence</span>
+      <div class="confidence-track"><div class="confidence-fill" id="confidence-fill"></div></div>
+      <span class="confidence-val" id="confidence-val">--</span>
+    </div>
+  </div>
+
+  <!-- Answer -->
+  <div class="hidden" id="answer-section">
+    <div class="hint-banner" id="hint-warning">
+      <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor" style="flex-shrink:0"><path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.168 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"/></svg>
+      <span>Hints cost 1 point per dimension.</span>
+      <button class="btn btn-sm btn-secondary" id="hint-confirm" style="margin-left:auto">Show hint</button>
+    </div>
+    <div class="ans-wrap">
+      <textarea class="input" id="answer-input" placeholder="Type your answer..."></textarea>
+      <div class="ans-foot">
+        <span class="ans-chars"><span id="char-count">0</span> chars</span>
+        <div class="ans-btns">
+          <button class="btn btn-sm btn-icon voice-btn" id="voice-btn" title="Voice input">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+          </button>
+          <button class="btn btn-sm btn-secondary" id="hint-btn">Hint</button>
+          <button class="btn btn-sm btn-danger" id="skip-btn">Skip</button>
+          <button class="btn btn-sm btn-primary" id="submit-answer-btn">Submit</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="loader hidden" id="iv-loading">
+    <div class="loader-bar"></div>
+    <p id="iv-loading-msg">Evaluating...</p>
+  </div>
+</div>
+
+<!-- ============================================================
+     SCREEN 4 — THANK YOU
+     ============================================================ -->
+<div class="screen" id="screen-report">
+  <div class="done-wrap">
+    <!-- Geometric completion illustration -->
+    <svg class="done-icon" width="48" height="48" viewBox="0 0 48 48" fill="none">
+      <path d="M24 6l16 9.5v19L24 44 8 34.5v-19z" stroke="rgba(74,222,128,.3)" stroke-width="1"/>
+      <path d="M24 14l10 6v12L24 38 14 32V20z" stroke="rgba(74,222,128,.5)" stroke-width="1"/>
+      <path d="M18 25l4 4 8-8" stroke="rgba(74,222,128,.8)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <h1>Interview Complete</h1>
+    <p>Your responses have been recorded and will be reviewed. You will be contacted with next steps.</p>
+    <p class="sub">Thank you for your time.</p>
+  </div>
+  <div style="text-align:center;padding:20px 0">
+    <button class="btn btn-secondary btn-lg" id="new-interview-btn">Start Another Interview</button>
+  </div>
+</div>
+
+</div><!-- /shell -->
+
+<!-- ============================================================
+     JAVASCRIPT — all functionality preserved
+     ============================================================ -->
+<script>
+// ---------- State ----------
+const S = {
+  sessionId:null, profile:null, selectedPersona:null, file:null,
+  currentQuestion:null, questionIndex:0, totalQuestions:15,
+  timerInterval:null, timerSeconds:0, countdownTotal:100,
+  pdfPath:'', introText:'', hintUsed:false, timingStatus:'early', submitting:false,
+};
+
+// ---------- Helpers ----------
+const $=id=>document.getElementById(id);
+const show=el=>{(typeof el==='string'?$(el):el).classList.remove('hidden')};
+const hide=el=>{(typeof el==='string'?$(el):el).classList.add('hidden')};
+
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  $(id).classList.add('active');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function showToast(msg,type='error'){
+  const toast=$('toast');
+  toast.style.display='';
+  $('toast-msg').textContent=msg;
+  const title=$('toast-title');
+  const icon=$('toast-icon');
+  if(type==='info'){
+    title.textContent='Info';title.style.color='var(--accent)';icon.style.color='var(--accent)';
+  }else{
+    title.textContent='Error';title.style.color='var(--red)';icon.style.color='var(--red)';
+  }
+  toast.classList.add('show');
+  clearTimeout(showToast._t);
+  showToast._t=setTimeout(()=>{toast.classList.remove('show');setTimeout(()=>{toast.style.display='none'},350)},5000);
+}
+
+async function api(url,body,isForm=false){
+  const opts={method:'POST'};
+  if(isForm){opts.body=body}else{opts.headers={'Content-Type':'application/json'};opts.body=JSON.stringify(body)}
+  const res=await fetch(url,opts);
+  const data=await res.json();
+  if(!res.ok)throw new Error(data.detail||data.message||'Server error');
+  return data;
+}
+
+// ---------- SCREEN 1: Welcome ----------
+const dropZone=$('drop-zone'), fileInput=$('file-input'), beginBtn=$('begin-btn');
+
+dropZone.addEventListener('click',()=>fileInput.click());
+dropZone.addEventListener('dragover',e=>{e.preventDefault();dropZone.classList.add('over')});
+dropZone.addEventListener('dragleave',()=>dropZone.classList.remove('over'));
+dropZone.addEventListener('drop',e=>{e.preventDefault();dropZone.classList.remove('over');if(e.dataTransfer.files.length)handleFile(e.dataTransfer.files[0])});
+fileInput.addEventListener('change',()=>{if(fileInput.files.length)handleFile(fileInput.files[0])});
+$('github-input').addEventListener('input',()=>{beginBtn.disabled=!S.file&&!$('github-input').value.trim()});
+
+function handleFile(file){
+  const ext=file.name.split('.').pop().toLowerCase();
+  if(!['pdf','docx','txt'].includes(ext)){showToast('Unsupported file type. Use PDF, DOCX, or TXT.');return}
+  S.file=file;
+  dropZone.classList.add('done');
+  dropZone.innerHTML=`
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+    <p class="chosen-file">${file.name}</p>
+    <p style="font-size:.68rem;color:var(--text-4);margin-top:4px">Click to change</p>`;
+  beginBtn.disabled=false;
+}
+
+beginBtn.addEventListener('click',async()=>{
+  const ghUser=$('github-input').value.trim();
+  if(!S.file&&!ghUser)return;
+  hide('begin-btn');show('welcome-loading');
+  try{
+    if(S.file){
+      const form=new FormData();form.append('file',S.file);
+      const profile=await api('/upload',form,true);
+      S.sessionId=profile.session_id;S.profile=profile;
+      if(ghUser){try{const gp=await api('/github',{username:ghUser});S.profile.github_profile=gp;if(gp.top_repos)S.profile.github_repos=gp.top_repos}catch(e){}}
+    }else{
+      const gp=await api('/github',{username:ghUser});
+      S.sessionId=gp.session_id;S.profile=gp;
+    }
+    populateProfile(S.profile);showScreen('screen-profile');
+  }catch(e){showToast(e.message||'Failed to analyze profile.');show('begin-btn')}finally{hide('welcome-loading')}
+});
+
+// ---------- SCREEN 2: Profile ----------
+function populateProfile(p){
+  $('pf-name').textContent=p.name||'Candidate';
+  $('pf-role').textContent=p.detected_role||'Professional';
+  $('pf-industry').textContent=p.industry||'General';
+  $('pf-seniority').textContent=p.seniority||'Mid Level';
+  $('pf-experience').textContent=(p.years_of_experience||0)+' years';
+  const tags=$('project-tags');tags.innerHTML='';
+  (p.projects||[]).slice(0,3).forEach(pr=>{const s=document.createElement('span');s.className='chip';s.textContent=pr.name||pr.description||'Project';tags.appendChild(s)});
+  if(!p.projects||!p.projects.length)tags.innerHTML='<span class="chip">No projects detected</span>';
+  buildPersonaCards();
+}
+
+function buildPersonaCards(){
+  const personas=[
+    {id:'technical_expert',icon:'TE',cls:'pi-tech',name:'Technical Expert',desc:'Deep domain knowledge, probes your expertise hard, expects precise and detailed answers'},
+    {id:'senior_manager',icon:'SM',cls:'pi-mgr',name:'Senior Manager',desc:'Focuses on leadership, ownership, impact and results'},
+    {id:'hr',icon:'HR',cls:'pi-hr',name:'HR Screener',desc:'Friendly but structured. Focuses on soft skills, communication, and culture fit'},
+    {id:'executive_panel',icon:'EP',cls:'pi-exec',name:'Executive Panel',desc:'High pressure, multi-angle, covers everything'},
+  ];
+  const grid=$('persona-grid');grid.innerHTML='';
+  personas.forEach(p=>{
+    const d=document.createElement('div');d.className='card persona';d.dataset.id=p.id;
+    d.innerHTML=`<div class="persona-icon ${p.cls}">${p.icon}</div><h4>${p.name}</h4><p>${p.desc}</p>`;
+    d.addEventListener('click',()=>{grid.querySelectorAll('.persona').forEach(c=>c.classList.remove('picked'));d.classList.add('picked');S.selectedPersona=p.id;$('start-btn').disabled=false});
+    grid.appendChild(d);
+  });
+}
+
+$('confirm-yes').addEventListener('click',()=>{
+  $('pf-role-edit').classList.remove('vis');$('pf-industry-edit').classList.remove('vis');
+  $('pf-role').classList.remove('hid');$('pf-industry').classList.remove('hid');
+  $('confirm-yes').disabled=true;$('confirm-yes').textContent='Confirmed';
+  $('confirm-no').style.display='none';
+  document.querySelector('.persona-heading').scrollIntoView({behavior:'smooth',block:'start'});
+});
+$('confirm-no').addEventListener('click',()=>{
+  const r=$('pf-role-edit'),i=$('pf-industry-edit');
+  r.value=S.profile.detected_role||'';i.value=S.profile.industry||'';
+  r.classList.add('vis');i.classList.add('vis');
+  $('pf-role').classList.add('hid');$('pf-industry').classList.add('hid');
+  $('confirm-yes').disabled=false;$('confirm-yes').textContent='Confirm';
+  $('confirm-no').style.display='';
+});
+
+$('start-btn').addEventListener('click',async()=>{
+  if(!S.selectedPersona)return;
+  hide('start-btn');show('profile-loading');
+  const overrides={};
+  const rE=$('pf-role-edit'),iE=$('pf-industry-edit');
+  if(rE.classList.contains('vis')&&rE.value.trim()){overrides.detected_role=rE.value.trim();S.profile.detected_role=overrides.detected_role}
+  if(iE.classList.contains('vis')&&iE.value.trim()){overrides.industry=iE.value.trim();S.profile.industry=overrides.industry}
+  try{
+    const r=await api('/start',{session_id:S.sessionId,persona_id:S.selectedPersona,...overrides});
+    S.totalQuestions=r.total_questions;S.currentQuestion=r.first_question;S.questionIndex=0;S.introText=r.intro;
+    $('iv-name').textContent=S.profile.name||'Candidate';
+    $('iv-persona').textContent=r.persona_name||S.selectedPersona;
+    showScreen('screen-interview');
+    // Show intro as pure welcome — hide bar, timer, progress
+    hide('iv-bar-wrap');hide('iv-progress-wrap');
+    $('iv-intro-text').textContent=S.introText;show('iv-intro-card');
+  }catch(e){show('start-btn')}finally{hide('profile-loading')}
+});
+
+// ---------- SCREEN 3: Interview ----------
+$('iv-begin-questions').addEventListener('click',()=>{
+  hide('iv-intro-card');show('iv-bar-wrap');show('iv-progress-wrap');showQuestion(S.currentQuestion);show('question-card');show('answer-section');
+});
+
+function showQuestion(q){
+  $('q-number').textContent='Q'+(q.index+1);
+  $('q-category').textContent=q.category.toUpperCase();
+  $('q-text').textContent=q.question;
+  $('iv-progress').textContent=`Q${q.index+1} / ${S.totalQuestions}`;
+  $('iv-progress-bar').style.width=(q.index/S.totalQuestions*100)+'%';
+  const card=$('question-card');
+  const fuBadge=$('q-followup-badge');
+  if(q.is_followup){card.classList.add('followup');show(fuBadge)}
+  else{card.classList.remove('followup');hide(fuBadge)}
+  $('answer-input').value='';$('char-count').textContent='0';
+  $('answer-input').focus();S.hintUsed=false;S.timingStatus='early';
+  $('hint-warning').classList.remove('vis');
+  const oldMsg=document.querySelector('.iv-timeup-msg');if(oldMsg)oldMsg.remove();
+  startCountdown();
+  LiveFeedback.reset();
+  if(voiceAutoSpeak && VoiceMode.isSupported()){VoiceMode.speak(q.question)}
+}
+
+function startCountdown(){
+  clearInterval(S.timerInterval);
+  S.timerSeconds=0;S.timingStatus='early';
+  let remaining=S.countdownTotal;
+  updateCountdown(remaining);
+  S.timerInterval=setInterval(()=>{
+    S.timerSeconds++;remaining=S.countdownTotal-S.timerSeconds;
+    if(remaining<=0){
+      remaining=0;clearInterval(S.timerInterval);
+      S.timingStatus='timeout';
+      updateCountdown(0);
+      autoSubmitTimeout();
+      return;
+    }
+    updateCountdown(remaining);
+  },1000);
+}
+function updateCountdown(rem){
+  const el=$('iv-timer');el.textContent=rem+'s';
+  el.classList.remove('warn','danger');
+  if(rem<=30)el.classList.add('danger');
+  else if(rem<=60)el.classList.add('warn');
+}
+function stopCountdown(){clearInterval(S.timerInterval);if(S.timerSeconds>=S.countdownTotal)S.timingStatus='timeout';else if(S.timerSeconds>=S.countdownTotal*0.9)S.timingStatus='full';else S.timingStatus='early'}
+function autoSubmitTimeout(){
+  if(S.submitting)return;
+  VoiceMode.cancelSpeech();VoiceMode.stopListening();LiveFeedback.reset();
+  hide('question-card');hide('answer-section');
+  const msg=document.createElement('div');msg.className='iv-timeup-msg';msg.textContent="Time\u2019s up. Moving to next question\u2026";
+  $('screen-interview').insertBefore(msg,$('iv-loading'));
+  setTimeout(()=>{msg.remove();doSubmitAnswer(false,true)},1800);
+}
+
+$('answer-input').addEventListener('input',()=>{
+  $('char-count').textContent=$('answer-input').value.length;
+  LiveFeedback.onInput($('answer-input').value);
+});
+$('hint-btn').addEventListener('click',()=>{$('hint-warning').classList.add('vis')});
+
+// ---- REAL-TIME FEEDBACK ENGINE ----
+const LiveFeedback = (() => {
+  let lastAckTime = 0;
+  let lastAckLen = 0;
+  let typingTimeout = null;
+  let ackIndex = 0;
+
+  const acks = {
+    start: ["I see...", "Go on...", "Mmhm...", "Okay..."],
+    building: ["Interesting...", "Right...", "Good...", "I follow..."],
+    strong: ["Good point.", "Interesting detail.", "Nice.", "That's solid.", "Strong example."],
+    probing: ["Tell me more...", "And then?", "How so?", "Elaborate..."],
+  };
+
+  const specificityWords = /\b(built|designed|implemented|led|managed|deployed|optimized|reduced|increased|migrated|architected|refactored|debugged|launched|scaled|automated|integrated|percent|million|thousand|team of|years?|months?)\b/gi;
+  const vagueWords = /\b(stuff|things|basically|kind of|sort of|maybe|i think|probably|i guess|etc|whatever)\b/gi;
+
+  function onInput(text) {
+    const bar = $('feedback-bar');
+    const len = text.length;
+    if (len > 0) { bar.classList.add('visible'); } else { bar.classList.remove('visible'); resetConfidence(); return; }
+    clearTimeout(typingTimeout);
+    $('listening-label').textContent = 'Listening...';
+    typingTimeout = setTimeout(() => { if (len > 20) $('listening-label').textContent = 'Thinking...'; }, 2000);
+    updateConfidence(text);
+    const now = Date.now();
+    if (now - lastAckTime < 3000) return;
+    if (len >= 30 && lastAckLen < 30) { triggerAck('start'); }
+    else if (len >= 100 && lastAckLen < 100) { triggerAck('building'); }
+    else if (len >= 200 && lastAckLen < 200) { triggerAck(hasSpecifics(text) ? 'strong' : 'probing'); }
+    else if (len >= 350 && lastAckLen < 350) { triggerAck('strong'); }
+    else if (len - lastAckLen > 120 && len > 150) { triggerAck(hasSpecifics(text) ? 'strong' : 'building'); }
+  }
+
+  function hasSpecifics(text) { const m = text.match(specificityWords); return m && m.length >= 2; }
+
+  function updateConfidence(text) {
+    const len = text.length;
+    const fill = $('confidence-fill');
+    const val = $('confidence-val');
+    let score = Math.min(40, len / 8);
+    score += Math.min(30, (text.match(specificityWords) || []).length * 8);
+    score -= (text.match(vagueWords) || []).length * 5;
+    score += Math.min(15, ((text.match(/[.!?]\s/g) || []).length + 1) * 3);
+    if (text.includes('\n')) score += 5;
+    score = Math.max(0, Math.min(100, Math.round(score)));
+    let color;
+    if (score >= 70) color = 'var(--green)';
+    else if (score >= 40) color = 'var(--amber)';
+    else color = 'var(--red)';
+    fill.style.width = score + '%';
+    fill.style.background = color;
+    val.textContent = score;
+    val.style.color = color;
+  }
+
+  function resetConfidence() {
+    $('confidence-fill').style.width = '0%';
+    $('confidence-val').textContent = '--';
+    $('confidence-val').style.color = 'var(--text-4)';
+  }
+
+  function triggerAck(pool) {
+    const list = acks[pool] || acks.building;
+    const msg = list[ackIndex % list.length];
+    ackIndex++;
+    lastAckTime = Date.now();
+    lastAckLen = $('answer-input').value.length;
+    const el = $('micro-ack');
+    el.classList.remove('show');
+    el.textContent = msg;
+    void el.offsetWidth;
+    el.classList.add('show');
+  }
+
+  function reset() {
+    lastAckTime = 0; lastAckLen = 0; ackIndex = 0;
+    $('feedback-bar').classList.remove('visible');
+    $('micro-ack').classList.remove('show');
+    $('micro-ack').textContent = '';
+    $('listening-label').textContent = 'Listening...';
+    resetConfidence();
+  }
+
+  return { onInput, reset };
+})();
+
+$('hint-confirm').addEventListener('click',()=>{S.hintUsed=true;$('hint-warning').classList.remove('vis');showToast('Think about: context, specific examples, and measurable outcomes.','info')});
+$('skip-btn').addEventListener('click',()=>submitAnswer(true));
+$('submit-answer-btn').addEventListener('click',()=>submitAnswer(false));
+
+function submitAnswer(skipped){
+  if(S.submitting)return;
+  VoiceMode.cancelSpeech();
+  VoiceMode.stopListening();
+  const answer=$('answer-input').value.trim();
+  if(!skipped&&!answer){showToast('Type an answer or click Skip.');return}
+  stopCountdown();
+  LiveFeedback.reset();
+  doSubmitAnswer(skipped,false);
+}
+
+async function doSubmitAnswer(skipped,fromTimeout){
+  if(S.submitting)return;
+  S.submitting=true;
+  const answer=$('answer-input').value.trim();
+  const actualSkipped=skipped||(fromTimeout&&!answer);
+  if(!actualSkipped && answer.length > 30){
+    const postAcks = ["Got it, let me think about that...", "Noted. Processing...", "Thank you, evaluating...", "Understood. One moment..."];
+    $('iv-loading-msg').textContent = postAcks[Math.floor(Math.random()*postAcks.length)];
+  } else {
+    $('iv-loading-msg').textContent='Evaluating...';
+  }
+  hide('question-card');hide('answer-section');show('iv-loading');
+  try{
+    const r=await api('/answer',{session_id:S.sessionId,question_index:S.questionIndex,question_id:S.currentQuestion.id,answer:actualSkipped?'':answer,time_seconds:S.timerSeconds,skipped:actualSkipped,used_hint:S.hintUsed,is_followup:!!S.currentQuestion.is_followup,followup_question_text:S.currentQuestion.is_followup?S.currentQuestion.question:'',timing_status:fromTimeout?'timeout':S.timingStatus});
+    if(r.done){
+      stopCountdown();$('iv-progress-bar').style.width='100%';
+      $('iv-loading-msg').textContent='Wrapping up...';
+      await api('/complete',{session_id:S.sessionId});
+      showScreen('screen-report');
+    }else if(r.followup&&r.followup.question){
+      const fuLabel=r.followup.action==='clarify'?'Follow-up':'Digging deeper';
+      S.currentQuestion={id:S.currentQuestion.id,category:S.currentQuestion.category,question:r.followup.question,context:fuLabel,difficulty:S.currentQuestion.difficulty,is_followup:true,index:S.currentQuestion.index};
+      hide('iv-loading');showQuestion(S.currentQuestion);show('question-card');show('answer-section');
+    }else{
+      S.currentQuestion=r.next_question;S.questionIndex=r.next_question.index;
+      hide('iv-loading');showQuestion(S.currentQuestion);show('question-card');show('answer-section');
+    }
+  }catch(e){stopCountdown();hide('iv-loading');show('question-card');show('answer-section');showToast(e.message||'Failed to submit answer. Please try again.')}
+  finally{S.submitting=false}
+}
+
+// ---- VOICE MODE (Web Speech API) ----
+const VoiceMode = (() => {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const synth = window.speechSynthesis;
+  let recognition = null;
+  let isListening = false;
+  let silenceTimer = null;
+  let autoSubmitTimer = null;
+  const SILENCE_TIMEOUT = 3000;
+  const AUTO_SUBMIT_TIMEOUT = 5000;
+
+  function isSupported() { return !!SpeechRecognition; }
+
+  function cleanTextForSpeech(text) {
+    return text.replace(/["""''`]/g, '').replace(/[#*_~^|\\{}[\]<>@]/g, '').replace(/\s*[—–]\s*/g, ', ').replace(/[()]/g, ', ').replace(/\s*[/:;]\s*/g, ', ').replace(/\.{2,}/g, '.').replace(/,{2,}/g, ',').replace(/\s{2,}/g, ' ').trim();
+  }
+
+  function resetSilenceTimer() {
+    if (silenceTimer) clearTimeout(silenceTimer);
+    if (autoSubmitTimer) clearTimeout(autoSubmitTimer);
+    silenceTimer = setTimeout(() => { if (isListening) stopListening(); }, SILENCE_TIMEOUT);
+    autoSubmitTimer = setTimeout(() => {
+      const answer = $('answer-input').value.trim();
+      if (answer) { stopListening(); submitAnswer(false); }
+    }, AUTO_SUBMIT_TIMEOUT);
+  }
+
+  function startListening() {
+    if (!SpeechRecognition || isListening) return;
+    recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
+    const textarea = $('answer-input');
+    let finalTranscript = textarea.value;
+    recognition.onresult = (e) => {
+      resetSilenceTimer();
+      let interim = '';
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        const t = e.results[i][0].transcript;
+        if (e.results[i].isFinal) { finalTranscript += t; } else { interim += t; }
+      }
+      textarea.value = finalTranscript + interim;
+      textarea.dispatchEvent(new Event('input'));
+    };
+    recognition.onerror = (e) => { if (e.error === 'not-allowed') { stopListening(); showToast('Microphone access denied. Check browser permissions.'); } else if (e.error !== 'aborted' && e.error !== 'no-speech') { stopListening(); } };
+    recognition.onend = () => { if (isListening) { try { recognition.start(); } catch(e){} } };
+    recognition.start();
+    isListening = true;
+    resetSilenceTimer();
+    $('voice-btn').classList.add('recording');
+  }
+
+  function stopListening() {
+    isListening = false;
+    if (silenceTimer) { clearTimeout(silenceTimer); silenceTimer = null; }
+    if (autoSubmitTimer) { clearTimeout(autoSubmitTimer); autoSubmitTimer = null; }
+    if (recognition) { try { recognition.stop(); } catch(e){} recognition = null; }
+    $('voice-btn').classList.remove('recording');
+  }
+
+  function cancelSpeech() { if (synth) synth.cancel(); }
+  function toggle() { if (isListening) stopListening(); else startListening(); }
+
+  function speak(text) {
+    if (!synth) return;
+    synth.cancel();
+    const utter = new SpeechSynthesisUtterance(cleanTextForSpeech(text));
+    utter.rate = 1.0; utter.pitch = 1.0;
+    const voices = synth.getVoices();
+    if (voices.length) {
+      const preferred = voices.find(v => v.lang.startsWith('en') && !v.localService) || voices.find(v => v.lang.startsWith('en')) || voices[0];
+      if (preferred) utter.voice = preferred;
+    }
+    synth.speak(utter);
+  }
+
+  return { isSupported, toggle, startListening, stopListening, speak, cancelSpeech };
+})();
+
+$('voice-btn').addEventListener('click', () => {
+  if (!VoiceMode.isSupported()) { showToast('Voice input not supported in this browser.'); return; }
+  VoiceMode.toggle();
+  voiceAutoSpeak = $('voice-btn').classList.contains('recording');
+});
+
+let voiceAutoSpeak = false;
+
+$('new-interview-btn').addEventListener('click',()=>{
+  S.sessionId=null;S.profile=null;S.selectedPersona=null;S.file=null;S.currentQuestion=null;S.questionIndex=0;
+  const dz=$('drop-zone');dz.classList.remove('done');
+  dz.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4m0 0l-4 4m4-4l4 4"/><path d="M3 17v2a2 2 0 002 2h14a2 2 0 002-2v-2"/></svg><p>Drag &amp; drop here or <span class="browse">browse</span></p><p class="exts">.pdf .docx .txt</p>`;
+  $('github-input').value='';$('begin-btn').disabled=true;show('begin-btn');$('file-input').value='';
+  $('confirm-yes').disabled=false;$('confirm-yes').textContent='Confirm';$('confirm-no').style.display='';
+  showScreen('screen-welcome');
+});
+</script>
+</body>
+</html>

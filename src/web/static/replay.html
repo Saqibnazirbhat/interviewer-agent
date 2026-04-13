@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Interview Replay</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' fill='none' stroke='%23888' stroke-width='1.2'><path d='M16 4l10 6v12l-10 6L6 22V10z'/><path d='M16 10l6 3.5v7L16 24l-6-3.5v-7z' stroke-opacity='.5'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#08080a;--surface:#111113;--surface-2:#18181b;--surface-3:#1e1e21;
+  --border:rgba(255,255,255,.06);--border-2:rgba(255,255,255,.1);
+  --text:#e4e4e7;--text-2:#a1a1aa;--text-3:#52525b;--text-4:#3f3f46;
+  --accent:#a78bfa;--accent-dim:rgba(167,139,250,.08);--accent-border:rgba(167,139,250,.15);
+  --green:#4ade80;--green-dim:rgba(74,222,128,.08);
+  --amber:#fbbf24;--amber-dim:rgba(251,191,36,.08);
+  --red:#f87171;--red-dim:rgba(248,113,113,.08);
+  --radius:10px;--radius-sm:6px;
+  --font:'Inter',system-ui,-apple-system,sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:16px;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;line-height:1.6}
+
+/* Nav */
+.nav{position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:0 24px;height:48px;background:rgba(8,8,10,.85);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom:1px solid var(--border)}
+.nav-brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--text)}
+.nav-logo svg{display:block}
+.nav-name{font-size:.82rem;font-weight:600;color:var(--text-2)}
+.nav-right{display:flex;align-items:center;gap:8px}
+.nav-link{font-size:.75rem;font-weight:500;color:var(--text-3);text-decoration:none;padding:5px 8px;border-radius:var(--radius-sm);transition:color .15s}
+.nav-link:hover{color:var(--text)}
+
+/* Shell */
+.shell{max-width:800px;margin:0 auto;padding:40px 24px 96px}
+
+/* Header */
+.page-header{margin-bottom:32px}
+.page-header h1{font-size:1rem;font-weight:600;letter-spacing:-.01em;margin-bottom:4px}
+.page-header .subtitle{color:var(--text-3);font-size:.78rem}
+
+/* Badges */
+.badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:4px;font-size:.65rem;font-weight:600;letter-spacing:.03em;text-transform:uppercase}
+.badge-accent{background:var(--accent-dim);color:var(--accent)}
+.badge-green{background:var(--green-dim);color:var(--green)}
+.badge-amber{background:var(--amber-dim);color:var(--amber)}
+.badge-red{background:var(--red-dim);color:var(--red)}
+.badge-muted{background:rgba(255,255,255,.04);color:var(--text-3)}
+
+/* Commentary banner */
+.commentary-banner{
+  background:var(--surface);border:1px solid var(--accent-border);border-radius:var(--radius);
+  padding:16px 20px;margin-bottom:24px;
+}
+.commentary-banner .label{font-size:.65rem;text-transform:uppercase;letter-spacing:.06em;color:var(--accent);margin-bottom:6px;font-weight:600}
+.commentary-banner .text{color:var(--text-2);font-size:.82rem;line-height:1.6}
+
+/* Stats grid */
+.stats-grid{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:24px;
+}
+.stat-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;text-align:center;
+}
+.stat-card .stat-val{font-size:1.3rem;font-weight:600}
+.stat-card .stat-label{font-size:.65rem;color:var(--text-4);text-transform:uppercase;letter-spacing:.06em;margin-top:2px}
+.stat-card .stat-detail{font-size:.72rem;color:var(--text-3);margin-top:2px}
+
+/* Skills */
+.skills-section{margin-bottom:24px}
+.skills-section h3{font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--text-4);margin-bottom:10px;font-weight:600}
+.skill-chip{
+  display:inline-block;font-size:.72rem;padding:3px 10px;border-radius:4px;
+  background:var(--accent-dim);color:var(--accent);margin:0 6px 6px 0;font-weight:500;
+}
+
+/* Contradictions */
+.contradictions{margin-bottom:24px}
+.contradictions h3{font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--red);margin-bottom:10px;font-weight:600}
+.contradiction-item{
+  background:var(--red-dim);border:1px solid rgba(248,113,113,.1);border-radius:var(--radius-sm);
+  padding:10px 14px;margin-bottom:8px;font-size:.78rem;color:var(--text-2);
+}
+.contradiction-item .vs{color:var(--red);font-weight:700;margin:0 6px}
+
+/* Timeline */
+.timeline{position:relative;padding-left:28px}
+.timeline::before{content:'';position:absolute;left:9px;top:0;bottom:0;width:1px;background:var(--border)}
+
+.moment{position:relative;margin-bottom:16px}
+.moment .dot{
+  position:absolute;left:-22px;top:14px;width:10px;height:10px;border-radius:50%;z-index:1;
+}
+.dot.green{background:var(--green)}.dot.amber{background:var(--amber)}.dot.red{background:var(--red)}.dot.gray{background:var(--text-4)}
+
+.moment-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  padding:14px 18px;transition:border-color .15s ease;
+}
+.moment-card:hover{border-color:var(--border-2)}
+
+.moment-meta{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
+.moment-question{font-weight:500;font-size:.85rem;margin-bottom:8px;line-height:1.5}
+.moment-answer{color:var(--text-2);font-size:.78rem;white-space:pre-wrap;margin-bottom:10px;max-height:200px;overflow-y:auto;line-height:1.6}
+.moment-answer.skipped{font-style:italic;color:var(--text-4)}
+.moment-time{font-size:.68rem;color:var(--text-4)}
+.moment-score{font-size:.72rem;font-weight:600;color:var(--text-2);margin-left:auto}
+
+.score-bar{display:flex;gap:6px;align-items:center;margin-bottom:4px}
+.score-dim{font-size:.68rem;color:var(--text-4);min-width:70px}
+.score-val{font-size:.68rem;font-weight:600;min-width:32px;text-align:right}
+.score-track{flex:1;height:3px;background:rgba(255,255,255,.04);border-radius:2px;overflow:hidden}
+.score-fill{height:100%;border-radius:2px;transition:width .5s ease}
+.score-fill.green{background:var(--green)}.score-fill.amber{background:var(--amber)}.score-fill.red{background:var(--red)}
+
+.moment-feedback{font-size:.78rem;color:var(--text-3);border-left:2px solid var(--border);padding-left:12px;margin-top:8px;line-height:1.5}
+
+.moment-flags{margin-top:8px}
+.flag-item{font-size:.75rem;color:var(--red);display:flex;gap:6px;align-items:center}
+
+.ai-comment{
+  margin-top:8px;padding:8px 12px;
+  background:var(--accent-dim);border-left:2px solid var(--accent);border-radius:0 var(--radius-sm) var(--radius-sm) 0;
+  font-size:.78rem;color:var(--text-2);line-height:1.5;
+}
+
+.followup-tag{font-size:.62rem;padding:2px 6px;border-radius:4px;background:var(--amber-dim);color:var(--amber);font-weight:600;text-transform:uppercase;letter-spacing:.03em}
+
+/* Loading */
+.loading-state{text-align:center;padding:80px 24px}
+.loading-state p{color:var(--text-3);font-size:.82rem;margin-top:16px}
+.loader-bar{width:120px;height:2px;background:rgba(255,255,255,.04);border-radius:1px;overflow:hidden;margin:0 auto}
+.loader-bar::after{content:'';display:block;width:40%;height:100%;background:var(--accent);border-radius:1px;animation:slide 1.2s ease infinite}
+@keyframes slide{0%{transform:translateX(-100%)}100%{transform:translateX(350%)}}
+
+/* Error */
+.error-state{text-align:center;padding:80px 24px}
+.error-state p{color:var(--red);font-size:.82rem}
+
+/* Empty geometric decoration */
+.geo-deco{margin:0 auto 20px;opacity:.15}
+
+/* Responsive */
+@media(max-width:600px){
+  .stats-grid{grid-template-columns:repeat(2,1fr)}
+  .shell{padding:24px 16px 80px}
+}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <a href="/owner" class="nav-brand">
+    <span class="nav-logo"><svg width="24" height="24" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".6"><path d="M16 4l10 6v12l-10 6L6 22V10z"/><path d="M16 10l6 3.5v7L16 24l-6-3.5v-7z" opacity=".4"/></svg></span>
+    <span class="nav-name">Interview Replay</span>
+  </a>
+  <div class="nav-right">
+    <a href="/owner" class="nav-link">Owner Portal</a>
+  </div>
+</nav>
+
+<div class="shell">
+
+  <div id="loading" class="loading-state">
+    <svg class="geo-deco" width="64" height="64" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width=".8">
+      <path d="M32 8l20 12v24L32 56 12 44V20z"/>
+      <path d="M32 16l12 7v14L32 44 20 37V23z" opacity=".5"/>
+      <path d="M32 24l4 2.5v5L32 34l-4-2.5v-5z" opacity=".3"/>
+    </svg>
+    <div class="loader-bar"></div>
+    <p>Loading interview replay</p>
+  </div>
+
+  <div id="error" class="error-state" style="display:none">
+    <svg class="geo-deco" width="48" height="48" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width=".8">
+      <path d="M24 6l16 9v18L24 42 8 33V15z"/>
+      <path d="M16 20l8 4 8-4" opacity=".4"/>
+      <path d="M24 24v12" opacity=".4"/>
+    </svg>
+    <p id="error-msg"></p>
+  </div>
+
+  <div id="content" style="display:none">
+
+    <div class="page-header">
+      <h1 id="replay-title">Interview Replay</h1>
+      <div class="subtitle" id="replay-subtitle"></div>
+    </div>
+
+    <div class="commentary-banner" id="commentary-banner" style="display:none">
+      <div class="label">AI Commentary</div>
+      <div class="text" id="overall-commentary"></div>
+    </div>
+
+    <div class="stats-grid" id="model-summary" style="display:none">
+      <div class="stat-card">
+        <div class="stat-val" id="stat-claims">0</div>
+        <div class="stat-label">Claims</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val" id="stat-contradictions">0</div>
+        <div class="stat-label">Contradictions</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val" id="stat-skills">0</div>
+        <div class="stat-label">Skills</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val" id="stat-answers">0</div>
+        <div class="stat-label">Answers</div>
+        <div class="stat-detail" id="stat-skipped"></div>
+      </div>
+    </div>
+
+    <div class="skills-section" id="skills-section" style="display:none">
+      <h3>Skills Demonstrated</h3>
+      <div id="skills-chips"></div>
+    </div>
+
+    <div class="contradictions" id="contradictions-section" style="display:none">
+      <h3>Contradictions Detected</h3>
+      <div id="contradictions-list"></div>
+    </div>
+
+    <div class="timeline" id="timeline"></div>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+
+async function loadReplay() {
+  // Extract session_id from URL path: /replay/{session_id}
+  const parts = window.location.pathname.split('/');
+  const sessionId = parts[parts.length - 1];
+
+  if (!sessionId) {
+    showError('No session ID provided.');
+    return;
+  }
+
+  try {
+    const res = await fetch(`/api/replay/${sessionId}`);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({detail: 'Failed to load replay'}));
+      showError(err.detail || `Error ${res.status}`);
+      return;
+    }
+    const data = await res.json();
+    render(data);
+  } catch (e) {
+    showError('Failed to connect to server.');
+  }
+}
+
+function showError(msg) {
+  $('loading').style.display = 'none';
+  $('error').style.display = 'block';
+  $('error-msg').textContent = msg;
+}
+
+function render(data) {
+  $('loading').style.display = 'none';
+  $('content').style.display = 'block';
+
+  // Header
+  $('replay-title').textContent = data.candidate_name || 'Unknown Candidate';
+  $('replay-subtitle').textContent = `${data.total_questions} questions \u00b7 ${data.persona.name}`;
+
+  // AI Commentary
+  const commentary = data.commentary || {};
+  if (commentary.overall) {
+    $('commentary-banner').style.display = 'block';
+    $('overall-commentary').textContent = commentary.overall;
+  }
+
+  // Build highlight map
+  const highlightMap = {};
+  (commentary.highlights || []).forEach(h => {
+    highlightMap[h.index] = h.comment;
+  });
+
+  // Candidate model stats
+  const cm = data.candidate_model || {};
+  if (cm.total_claims !== undefined) {
+    $('model-summary').style.display = 'grid';
+    $('stat-claims').textContent = cm.total_claims || 0;
+    $('stat-contradictions').textContent = cm.contradiction_count || 0;
+    $('stat-skills').textContent = (cm.demonstrated_skills || []).length;
+    $('stat-answers').textContent = cm.answer_count || 0;
+    if (cm.skipped_count) $('stat-skipped').textContent = `${cm.skipped_count} skipped`;
+  }
+
+  // Skills chips
+  const skills = cm.demonstrated_skills || [];
+  if (skills.length) {
+    $('skills-section').style.display = 'block';
+    $('skills-chips').innerHTML = skills.map(s => `<span class="skill-chip">${esc(s)}</span>`).join('');
+  }
+
+  // Contradictions
+  const contradictions = cm.contradictions || [];
+  if (contradictions.length) {
+    $('contradictions-section').style.display = 'block';
+    $('contradictions-list').innerHTML = contradictions.map(c =>
+      `<div class="contradiction-item">\u201c${esc(c.claim_a)}\u201d<span class="vs">vs</span>\u201c${esc(c.claim_b)}\u201d${c.explanation ? `<br><small style="color:var(--text-3)">${esc(c.explanation)}</small>` : ''}</div>`
+    ).join('');
+  }
+
+  // Timeline
+  const timeline = data.timeline || [];
+  $('timeline').innerHTML = timeline.map((m, i) => {
+    const color = m.color || 'gray';
+    const momentType = m.moment_type || 'unknown';
+    const category = m.category || 'general';
+    const difficulty = m.difficulty || '';
+    const timeSeconds = m.time_seconds || 0;
+    const typeLabel = momentType.charAt(0).toUpperCase() + momentType.slice(1);
+    const catLabel = category.charAt(0).toUpperCase() + category.slice(1);
+    const timeStr = timeSeconds < 60 ? `${Math.round(timeSeconds)}s` : `${Math.floor(timeSeconds/60)}m ${Math.round(timeSeconds%60)}s`;
+
+    const badgeClass = color === 'green' ? 'badge-green' : color === 'amber' ? 'badge-amber' : color === 'red' ? 'badge-red' : 'badge-muted';
+
+    let scoresHtml = '';
+    if (m.scores && !m.skipped) {
+      scoresHtml = Object.entries(m.scores).map(([dim, val]) => {
+        const pct = (val || 0) * 10;
+        const c = val >= 7 ? 'green' : val >= 5 ? 'amber' : 'red';
+        return `<div class="score-bar"><span class="score-dim">${dim}</span><div class="score-track"><div class="score-fill ${c}" style="width:${pct}%"></div></div><span class="score-val">${val}/10</span></div>`;
+      }).join('');
+    }
+
+    const integrity = m.integrity || {};
+    const flagsHtml = (integrity.flags || []).map(f => `<div class="flag-item">\u26a0 ${esc(f)}</div>`).join('');
+    const commentHtml = highlightMap[m.index] ? `<div class="ai-comment">${esc(highlightMap[m.index])}</div>` : '';
+    const followupTag = m.is_followup ? `<span class="followup-tag">${m.followup_type || 'follow-up'}</span>` : '';
+
+    return `
+      <div class="moment">
+        <div class="dot ${color}"></div>
+        <div class="moment-card">
+          <div class="moment-meta">
+            <span class="badge ${badgeClass}">${typeLabel}</span>
+            <span class="badge badge-accent">${catLabel}</span>
+            <span class="badge badge-muted">${difficulty}</span>
+            ${followupTag}
+            <span class="moment-time">${timeStr}</span>
+            ${!m.skipped ? `<span class="moment-score">${m.score_pct}%</span>` : ''}
+          </div>
+          <div class="moment-question">${m.is_followup ? '[Follow-up] ' : `Q${i+1}: `}${esc(m.question)}</div>
+          <div class="moment-answer${m.skipped ? ' skipped' : ''}">${m.skipped ? 'Skipped' : esc(m.answer)}</div>
+          ${scoresHtml}
+          ${m.feedback ? `<div class="moment-feedback">${esc(m.feedback)}</div>` : ''}
+          ${flagsHtml ? `<div class="moment-flags">${flagsHtml}</div>` : ''}
+          ${commentHtml}
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function esc(s) {
+  if (!s) return '';
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+loadReplay();
+</script>
+</body>
+</html>

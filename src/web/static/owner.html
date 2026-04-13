@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Owner Portal</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' fill='none' stroke='%23888' stroke-width='1.2'><path d='M16 4l10 6v12l-10 6L6 22V10z'/><path d='M16 10l6 3.5v7L16 24l-6-3.5v-7z' stroke-opacity='.5'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#08080a;--surface:#111113;--surface-2:#18181b;--surface-3:#1e1e21;
+  --border:rgba(255,255,255,.06);--border-2:rgba(255,255,255,.1);
+  --text:#e4e4e7;--text-2:#a1a1aa;--text-3:#52525b;--text-4:#3f3f46;
+  --accent:#a78bfa;--accent-dim:rgba(167,139,250,.08);--accent-border:rgba(167,139,250,.15);
+  --green:#4ade80;--green-dim:rgba(74,222,128,.08);
+  --amber:#fbbf24;--amber-dim:rgba(251,191,36,.08);
+  --red:#f87171;--red-dim:rgba(248,113,113,.08);
+  --radius:10px;--radius-sm:6px;
+  --font:'Inter',system-ui,-apple-system,sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:16px;-webkit-font-smoothing:antialiased}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;line-height:1.6}
+
+.nav{position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:0 24px;height:48px;background:rgba(8,8,10,.85);backdrop-filter:blur(16px);border-bottom:1px solid var(--border)}
+.nav-brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--text)}
+.nav-logo svg{display:block}
+.nav-name{font-size:.82rem;font-weight:600;color:var(--text-2)}
+.nav-right{display:flex;align-items:center;gap:8px}
+.nav-link{font-size:.75rem;font-weight:500;color:var(--text-3);text-decoration:none;padding:5px 8px;border-radius:var(--radius-sm);transition:color .15s}
+.nav-link:hover{color:var(--text)}
+.nav-model{font-size:.68rem;color:var(--text-4);padding:3px 8px;border:1px solid var(--border);border-radius:4px;cursor:default}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:7px 14px;border-radius:var(--radius-sm);border:1px solid transparent;font-family:var(--font);font-size:.78rem;font-weight:500;cursor:pointer;transition:all .15s;outline:none;text-decoration:none;color:var(--text)}
+.btn-primary{background:#fff;color:#000;border-color:#fff}
+.btn-primary:hover{background:#e4e4e7}
+.btn-primary:disabled{opacity:.3;cursor:not-allowed}
+.btn-secondary{background:var(--surface-2);color:var(--text-2);border-color:var(--border)}
+.btn-secondary:hover{background:var(--surface-3);color:var(--text)}
+.btn-danger{background:transparent;color:var(--text-3);border:1px solid var(--border);font-size:.72rem}
+.btn-danger:hover{color:var(--red);border-color:rgba(248,113,113,.2)}
+.btn-sm{padding:5px 10px;font-size:.72rem}
+
+.input{width:100%;padding:8px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-family:var(--font);font-size:.82rem;outline:none;transition:border-color .15s}
+.input:focus{border-color:var(--accent-border)}
+.input::placeholder{color:var(--text-4)}
+
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius)}
+
+.shell{max-width:880px;margin:0 auto;padding:40px 24px 96px}
+@media(min-width:640px){.shell{padding:48px 32px 96px}}
+
+.hidden{display:none!important}
+
+/* Login */
+.login-wrap{max-width:340px;margin:100px auto;text-align:center}
+.login-wrap h1{font-size:1.1rem;font-weight:600;letter-spacing:-.02em;margin-bottom:6px}
+.login-wrap p{color:var(--text-3);font-size:.8rem;margin-bottom:28px}
+.login-card{padding:28px}
+.login-card label{display:block;text-align:left;font-size:.65rem;font-weight:600;color:var(--text-4);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+.login-error{color:var(--red);font-size:.78rem;margin-top:10px;display:none}
+
+/* Geometric decoration for login */
+.login-geo{margin:0 auto 32px;opacity:.25}
+
+/* Dashboard */
+.dash-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px}
+.dash-header h1{font-size:1rem;font-weight:600;letter-spacing:-.01em}
+.dash-count{font-size:.75rem;color:var(--text-4)}
+
+/* Model bar */
+.model-bar{display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:20px;flex-wrap:wrap}
+.model-bar-label{font-size:.65rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-4)}
+.model-select{padding:6px 10px;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:var(--font);font-size:.78rem;outline:none;cursor:pointer}
+.model-select:focus{border-color:var(--accent-border)}
+.model-select optgroup{font-weight:600;color:var(--text-3)}
+.model-custom-wrap{display:flex;gap:6px;align-items:center}
+.model-custom-input{padding:6px 10px;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:var(--font);font-size:.78rem;outline:none;width:260px}
+.model-custom-input:focus{border-color:var(--accent-border)}
+.model-tier{font-size:.62rem;padding:2px 6px;border-radius:3px;font-weight:600;letter-spacing:.03em}
+.tier-fast{background:var(--green-dim);color:var(--green)}
+.tier-balanced{background:var(--accent-dim);color:var(--accent)}
+.tier-powerful{background:var(--amber-dim);color:var(--amber)}
+.tier-reasoning{background:var(--red-dim);color:var(--red)}
+.model-status{font-size:.72rem;color:var(--green);font-weight:500}
+
+/* Results table */
+.results-table{width:100%;border-collapse:collapse;font-size:.78rem}
+.results-table th{text-align:left;font-size:.65rem;font-weight:600;color:var(--text-4);text-transform:uppercase;letter-spacing:.04em;padding:10px 12px;border-bottom:1px solid var(--border)}
+.results-table td{padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:middle}
+.results-table tr:hover td{background:rgba(255,255,255,.015)}
+.cand-name{font-weight:500;color:var(--text)}
+.score-pill{display:inline-flex;align-items:center;padding:2px 8px;border-radius:4px;font-size:.72rem;font-weight:600}
+.score-green{background:var(--green-dim);color:var(--green)}
+.score-amber{background:var(--amber-dim);color:var(--amber)}
+.score-red{background:var(--red-dim);color:var(--red)}
+.actions-cell{display:flex;gap:6px}
+.empty-state{text-align:center;padding:64px 20px;color:var(--text-4);font-size:.85rem}
+
+/* Report modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px)}
+.modal{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);max-width:700px;width:100%;max-height:85vh;overflow-y:auto;padding:32px}
+.modal h2{font-size:1rem;font-weight:600;margin-bottom:20px}
+.modal-close{float:right;background:none;border:none;cursor:pointer;color:var(--text-4);font-size:1.1rem;padding:4px 8px}
+.modal-close:hover{color:var(--text)}
+
+/* Score ring */
+.ring-sm{display:inline-block;width:56px;height:56px;position:relative}
+.ring-sm svg{width:56px;height:56px;transform:rotate(-90deg)}
+.ring-sm .rbg{fill:none;stroke:var(--surface-3);stroke-width:5}
+.ring-sm .rfg{fill:none;stroke-width:5;stroke-linecap:round}
+.ring-sm .rfg.green{stroke:var(--green)}.ring-sm .rfg.amber{stroke:var(--amber)}.ring-sm .rfg.red{stroke:var(--red)}
+.ring-sm-val{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:700}
+
+.dim-row{margin-bottom:10px}
+.dim-head{display:flex;justify-content:space-between;margin-bottom:3px}
+.dim-name{font-size:.72rem;color:var(--text-3)}
+.dim-val{font-size:.72rem;font-weight:600}
+.dim-track{height:2px;background:var(--surface-3);border-radius:1px;overflow:hidden}
+.dim-fill{height:100%;border-radius:1px}
+.dim-fill.green{background:var(--green)}.dim-fill.amber{background:var(--amber)}.dim-fill.red{background:var(--red)}
+
+.rec-pill{display:inline-flex;padding:3px 12px;border-radius:4px;font-size:.72rem;font-weight:600}
+.rec-green{background:var(--green-dim);color:var(--green)}
+.rec-amber{background:var(--amber-dim);color:var(--amber)}
+.rec-red{background:var(--red-dim);color:var(--red)}
+
+.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:20px 0}
+@media(max-width:600px){.detail-grid{grid-template-columns:1fr}}
+.detail-card{padding:18px}
+.detail-card h3{font-size:.78rem;font-weight:600;margin-bottom:12px;color:var(--text-2)}
+.detail-item{font-size:.75rem;color:var(--text-3);margin-bottom:6px;display:flex;align-items:flex-start;gap:8px}
+.detail-dot{width:4px;height:4px;border-radius:50%;flex-shrink:0;margin-top:7px}
+.detail-dot.green{background:var(--green)}.detail-dot.amber{background:var(--amber)}.detail-dot.red{background:var(--red)}
+
+@media(max-width:700px){.results-table{font-size:.72rem}.results-table th,.results-table td{padding:8px 6px}}
+</style>
+</head>
+<body>
+
+<nav class="nav" id="topnav">
+  <a href="/owner" class="nav-brand">
+    <span class="nav-logo"><svg width="24" height="24" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".6"><path d="M16 4l10 6v12l-10 6L6 22V10z"/><path d="M16 10l6 3.5v7L16 24l-6-3.5v-7z" opacity=".4"/></svg></span>
+    <span class="nav-name">Owner Portal</span>
+  </a>
+  <div class="nav-right" id="nav-right">
+    <span class="nav-model" id="nav-model" style="display:none"></span>
+    <a href="/dashboard" class="nav-link" id="nav-dashboard" style="display:none">Compare</a>
+    <button class="btn btn-danger btn-sm" id="logout-btn" style="display:none">Logout</button>
+  </div>
+</nav>
+
+<div class="shell">
+
+<!-- LOGIN -->
+<div id="screen-login">
+  <div class="login-wrap">
+    <!-- Geometric decoration -->
+    <svg class="login-geo" width="80" height="80" viewBox="0 0 80 80" fill="none">
+      <path d="M40 8l28 16v32L40 72 12 56V24z" stroke="rgba(255,255,255,.08)" stroke-width=".8"/>
+      <path d="M40 18l18 10.5v21L40 60 22 49.5v-21z" stroke="rgba(255,255,255,.06)" stroke-width=".8"/>
+      <path d="M40 28l8 4.5v9L40 46l-8-4.5v-9z" stroke="rgba(255,255,255,.1)" stroke-width=".8"/>
+    </svg>
+    <h1>Owner Access</h1>
+    <p>Enter your password to view interview results.</p>
+    <div class="card login-card">
+      <label for="pw-input">Password</label>
+      <input class="input" type="password" id="pw-input" placeholder="Enter password" autocomplete="current-password">
+      <div style="margin-top:16px">
+        <button class="btn btn-primary" id="login-btn" style="width:100%">Sign In</button>
+      </div>
+      <p class="login-error" id="login-error">Incorrect password.</p>
+    </div>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="screen-dashboard" class="hidden">
+  <div class="dash-header">
+    <div>
+      <h1>Interview Results</h1>
+      <span class="dash-count" id="dash-count"></span>
+    </div>
+    <a href="/dashboard" class="btn btn-sm btn-secondary">Comparison Dashboard</a>
+  </div>
+
+  <!-- Model Selector -->
+  <div class="model-bar" id="model-bar">
+    <span class="model-bar-label">Model</span>
+    <select class="model-select" id="model-select">
+      <optgroup label="Fast">
+        <option value="meta/llama-3.1-8b-instruct">Llama 3.1 8B</option>
+        <option value="mistralai/mistral-7b-instruct-v0.3">Mistral 7B</option>
+      </optgroup>
+      <optgroup label="Balanced">
+        <option value="meta/llama-3.1-70b-instruct">Llama 3.1 70B</option>
+        <option value="mistralai/mixtral-8x7b-instruct-v0.1">Mixtral 8x7B</option>
+      </optgroup>
+      <optgroup label="Powerful">
+        <option value="meta/llama-3.1-405b-instruct">Llama 3.1 405B</option>
+        <option value="mistralai/mixtral-8x22b-instruct-v0.1">Mixtral 8x22B</option>
+      </optgroup>
+      <optgroup label="Reasoning">
+        <option value="deepseek-ai/deepseek-r1">DeepSeek R1</option>
+        <option value="qwen/qwen2.5-72b-instruct">Qwen 2.5 72B</option>
+      </optgroup>
+      <option value="__custom__">Custom model ID...</option>
+    </select>
+    <div class="model-custom-wrap" id="custom-model-wrap" style="display:none">
+      <input class="model-custom-input" id="custom-model-input" placeholder="e.g. nvidia/llama-3.1-nemotron-70b-instruct">
+      <button class="btn btn-sm btn-primary" id="custom-model-apply">Apply</button>
+    </div>
+    <span class="model-tier" id="model-tier"></span>
+    <span class="model-status" id="model-status"></span>
+  </div>
+
+  <div id="results-container">
+    <div class="empty-state" id="empty-state">
+      <!-- Geometric empty state -->
+      <svg width="64" height="64" viewBox="0 0 64 64" fill="none" style="margin-bottom:16px;opacity:.3">
+        <path d="M32 8l20 12v24L32 56 12 44V20z" stroke="currentColor" stroke-width=".8"/>
+        <path d="M32 20l10 6v12L32 44 22 38V26z" stroke="currentColor" stroke-width=".8" opacity=".5"/>
+      </svg>
+      <p>No interviews completed yet.</p>
+    </div>
+    <table class="results-table hidden" id="results-table">
+      <thead>
+        <tr>
+          <th>Candidate</th>
+          <th>Role</th>
+          <th>Score</th>
+          <th>Recommendation</th>
+          <th>Integrity</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="results-body"></tbody>
+    </table>
+  </div>
+</div>
+
+</div>
+
+<!-- REPORT MODAL -->
+<div class="modal-overlay hidden" id="modal-overlay">
+  <div class="modal" id="modal">
+    <button class="modal-close" id="modal-close">&times;</button>
+    <div id="modal-content"></div>
+  </div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const show=el=>{(typeof el==='string'?$(el):el).classList.remove('hidden')};
+const hide=el=>{(typeof el==='string'?$(el):el).classList.add('hidden')};
+
+async function checkAuth(){
+  try{const r=await fetch('/owner/auth-check');if(r.ok){showDashboard();return}}catch(e){}
+  showLogin();
+}
+
+function showLogin(){
+  show('screen-login');hide('screen-dashboard');
+  $('logout-btn').style.display='none';
+  $('nav-dashboard').style.display='none';
+  $('nav-model').style.display='none';
+}
+
+function showDashboard(){
+  hide('screen-login');show('screen-dashboard');
+  $('logout-btn').style.display='';
+  $('nav-dashboard').style.display='';
+  $('nav-model').style.display='';
+  loadResults();
+  loadActiveModel();
+}
+
+$('login-btn').addEventListener('click',doLogin);
+$('pw-input').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()});
+
+async function doLogin(){
+  const pw=$('pw-input').value;
+  if(!pw)return;
+  $('login-btn').disabled=true;
+  try{
+    const r=await fetch('/owner/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:pw})});
+    if(r.ok){$('login-error').style.display='none';showDashboard()}
+    else{$('login-error').style.display='block';$('pw-input').value='';$('pw-input').focus()}
+  }catch(e){$('login-error').style.display='block'}
+  $('login-btn').disabled=false;
+}
+
+$('logout-btn').addEventListener('click',async()=>{
+  await fetch('/owner/logout',{method:'POST'});
+  showLogin();$('pw-input').value='';
+});
+
+async function loadResults(){
+  try{
+    const r=await fetch('/api/dashboard');
+    if(r.status===401){showLogin();return}
+    const d=await r.json();
+    renderResults(d.results||[],d.total||0);
+  }catch(e){$('results-body').innerHTML='<tr><td colspan="6" style="text-align:center;color:var(--text-4)">Failed to load.</td></tr>'}
+}
+
+function renderResults(results,total){
+  $('dash-count').textContent=total+' interview'+(total!==1?'s':'');
+  if(!results.length){show('empty-state');hide('results-table');return}
+  hide('empty-state');show('results-table');
+  const tbody=$('results-body');
+  tbody.innerHTML=results.map(r=>{
+    const pct=Math.round((r.overall_score||0)*10);
+    const sc=pct>=70?'green':pct>=50?'amber':'red';
+    const rec=r.recommendation||'N/A';
+    const rc=rec.includes('Yes')?'green':rec==='Maybe'?'amber':'red';
+    const integ=r.integrity_score!=null?Math.round(r.integrity_score):'-';
+    const ic=integ>=8?'green':integ>=5?'amber':'red';
+    return `<tr>
+      <td class="cand-name">${esc(r.candidate_name||'Unknown')}</td>
+      <td style="color:var(--text-3)">${esc(r.role||'-')}</td>
+      <td><span class="score-pill score-${sc}">${pct}%</span></td>
+      <td><span class="rec-pill rec-${rc}">${esc(rec)}</span></td>
+      <td><span class="score-pill score-${ic}">${integ}/10</span></td>
+      <td class="actions-cell">
+        <button class="btn btn-sm btn-primary" onclick="viewReport('${r.session_id}')">Report</button>
+        <button class="btn btn-sm btn-secondary" onclick="window.open('/replay/${r.session_id}','_blank')">Replay</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function esc(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML}
+
+async function viewReport(sid){
+  $('modal-content').innerHTML='<p style="text-align:center;color:var(--text-4);padding:24px">Loading report...</p>';
+  show('modal-overlay');
+  try{
+    const r=await fetch('/report',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({session_id:sid})});
+    if(r.status===401){hide('modal-overlay');showLogin();return}
+    const d=await r.json();
+    renderReport(d);
+  }catch(e){$('modal-content').innerHTML='<p style="color:var(--red)">Failed to load report.</p>'}
+}
+
+function renderReport(r){
+  const pct=r.overall_percentage||0;
+  const sc=pct>=70?'green':pct>=50?'amber':'red';
+  const rec=r.recommendation||{label:'N/A',color:'gray'};
+  const rc=rec.color==='green'?'rec-green':rec.color==='yellow'?'rec-amber':'rec-red';
+  const dims=r.dimensions||{};
+  const auth=r.authenticity||{};
+
+  let html=`
+    <div style="text-align:center;margin-bottom:20px">
+      <div class="ring-sm">
+        <svg viewBox="0 0 60 60"><circle class="rbg" cx="30" cy="30" r="24"/><circle class="rfg ${sc}" cx="30" cy="30" r="24" stroke-dasharray="${2*Math.PI*24}" stroke-dashoffset="${2*Math.PI*24-(pct/100)*2*Math.PI*24}"/></svg>
+        <div class="ring-sm-val">${pct}%</div>
+      </div>
+      <div style="margin-top:8px"><span class="rec-pill ${rc}">${esc(rec.label)}</span></div>
+    </div>
+    <div class="detail-grid">
+      <div class="card detail-card"><h3>Score Dimensions</h3>${Object.entries(dims).map(([n,v])=>{
+        const pw=v*10,c=v>=7?'green':v>=5?'amber':'red';
+        return `<div class="dim-row"><div class="dim-head"><span class="dim-name">${n[0].toUpperCase()+n.slice(1)}</span><span class="dim-val" style="color:var(--${c})">${v}/10</span></div><div class="dim-track"><div class="dim-fill ${c}" style="width:${pw}%"></div></div></div>`;
+      }).join('')}</div>
+      <div>
+        <div class="card detail-card" style="margin-bottom:12px"><h3>Strengths</h3>${(r.strengths||[]).map(s=>`<div class="detail-item"><span class="detail-dot green"></span>${esc(s)}</div>`).join('')||'<div class="detail-item" style="color:var(--text-4)">None identified</div>'}</div>
+        <div class="card detail-card"><h3>Areas to Improve</h3>${(r.weaknesses||[]).map(w=>`<div class="detail-item"><span class="detail-dot amber"></span>${esc(w)}</div>`).join('')||'<div class="detail-item" style="color:var(--text-4)">None identified</div>'}</div>
+      </div>
+    </div>`;
+
+  const flags=r.red_flags||[];
+  if(flags.length){
+    html+=`<div class="card detail-card" style="border-color:rgba(248,113,113,.1);margin-bottom:16px"><h3 style="color:var(--red)">Red Flags</h3>${flags.map(f=>`<div class="detail-item"><span class="detail-dot red"></span>Q${f.question_id}: ${esc(f.flag)}</div>`).join('')}</div>`;
+  }
+
+  if(auth.overall_score!=null){
+    html+=`<div class="card detail-card" style="margin-bottom:16px"><h3>Authenticity</h3>
+      <div class="detail-item">Overall: <strong>${Math.round(auth.overall_score)}/100</strong></div>
+      ${(auth.flags||[]).map(f=>`<div class="detail-item"><span class="detail-dot amber"></span>${esc(f)}</div>`).join('')}
+    </div>`;
+  }
+
+  html+=`<div style="display:flex;gap:8px;justify-content:center;margin-top:20px">
+    ${r.pdf_path?`<button class="btn btn-primary btn-sm" onclick="window.open('/download/${encodeURIComponent(r.pdf_path.split(/[\\\\/]/).pop())}','_blank')">Download PDF</button>`:''}
+    <button class="btn btn-secondary btn-sm" onclick="hide('modal-overlay')">Close</button>
+  </div>`;
+
+  $('modal-content').innerHTML=html;
+}
+
+$('modal-close').addEventListener('click',()=>hide('modal-overlay'));
+$('modal-overlay').addEventListener('click',e=>{if(e.target===$('modal-overlay'))hide('modal-overlay')});
+
+// Model selector
+const MODEL_TIERS = {
+  'meta/llama-3.1-8b-instruct': {tier:'Fast',cls:'tier-fast'},
+  'mistralai/mistral-7b-instruct-v0.3': {tier:'Fast',cls:'tier-fast'},
+  'meta/llama-3.1-70b-instruct': {tier:'Balanced',cls:'tier-balanced'},
+  'mistralai/mixtral-8x7b-instruct-v0.1': {tier:'Balanced',cls:'tier-balanced'},
+  'meta/llama-3.1-405b-instruct': {tier:'Powerful',cls:'tier-powerful'},
+  'mistralai/mixtral-8x22b-instruct-v0.1': {tier:'Powerful',cls:'tier-powerful'},
+  'deepseek-ai/deepseek-r1': {tier:'Reasoning',cls:'tier-reasoning'},
+  'qwen/qwen2.5-72b-instruct': {tier:'Reasoning',cls:'tier-reasoning'},
+};
+
+function updateModelTier(modelId){
+  const t=MODEL_TIERS[modelId]||{tier:'Custom',cls:'tier-balanced'};
+  $('model-tier').textContent=t.tier;
+  $('model-tier').className='model-tier '+t.cls;
+  $('nav-model').textContent=modelId.split('/').pop();
+}
+
+async function loadActiveModel(){
+  try{
+    const r=await fetch('/api/model');
+    if(!r.ok)return;
+    const d=await r.json();
+    const m=d.model||'meta/llama-3.1-70b-instruct';
+    const sel=$('model-select');
+    const opts=Array.from(sel.options);
+    const match=opts.find(o=>o.value===m);
+    if(match){sel.value=m;hide('custom-model-wrap')}
+    else{sel.value='__custom__';show('custom-model-wrap');$('custom-model-input').value=m}
+    updateModelTier(m);
+  }catch(e){}
+}
+
+async function switchModel(modelId){
+  $('model-status').textContent='Switching...';
+  $('model-status').style.color='var(--amber)';
+  try{
+    const r=await fetch('/api/model',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:modelId})});
+    if(r.ok){
+      $('model-status').textContent='Active';
+      $('model-status').style.color='var(--green)';
+      updateModelTier(modelId);
+      setTimeout(()=>{$('model-status').textContent=''},2000);
+    }else{
+      const e=await r.json().catch(()=>({detail:'Failed'}));
+      $('model-status').textContent=e.detail||'Error';
+      $('model-status').style.color='var(--red)';
+    }
+  }catch(e){
+    $('model-status').textContent='Error';
+    $('model-status').style.color='var(--red)';
+  }
+}
+
+$('model-select').addEventListener('change',function(){
+  if(this.value==='__custom__'){show('custom-model-wrap');$('custom-model-input').focus();return}
+  hide('custom-model-wrap');
+  switchModel(this.value);
+});
+
+$('custom-model-apply').addEventListener('click',()=>{
+  const m=$('custom-model-input').value.trim();
+  if(m)switchModel(m);
+});
+$('custom-model-input').addEventListener('keydown',e=>{
+  if(e.key==='Enter'){const m=$('custom-model-input').value.trim();if(m)switchModel(m)}
+});
+
+checkAuth();
+</script>
+</body>
+</html>
