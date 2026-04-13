@@ -4,6 +4,12 @@ An AI-powered interview system that analyzes a candidate's GitHub profile or res
 
 Most mock interview tools ask generic textbook questions. Interviewer Agent reads your actual code, commit history, resume, and project architecture — then builds every question around what you've really built.
 
+## How It Works
+
+<p align="center">
+  <img src="assets/workflow.svg" alt="Interviewer Agent Workflow" width="100%"/>
+</p>
+
 ## What It Does
 
 1. **Analyzes the candidate** — GitHub repos, languages, commit patterns, or parsed resume (PDF/DOCX/TXT)
