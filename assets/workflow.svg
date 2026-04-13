@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 780" font-family="Segoe UI, Arial, sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 820" font-family="Segoe UI, Arial, sans-serif">
   <defs>
     <filter id="shadow" x="-4%" y="-4%" width="108%" height="112%">
       <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.07"/>
@@ -13,14 +13,19 @@
   </defs>
 
   <!-- Background -->
-  <rect width="1200" height="780" fill="#FAFBFE"/>
+  <rect width="1200" height="820" fill="#FAFBFE"/>
 
   <!-- ========================================== -->
-  <!--           GRID CONSTANTS                   -->
-  <!--   Label col: 0-70                          -->
-  <!--   Col centers: 210, 490, 770, 1050         -->
-  <!--   Box width: 240  (col x = center - 120)   -->
-  <!--   LLM box width: 244 (col x = center - 122)-->
+  <!--  GRID:                                      -->
+  <!--  Left labels: x=0..70                       -->
+  <!--  Col 1 center=210   Col 2 center=490        -->
+  <!--  Col 3 center=770   Col 4 center=1050       -->
+  <!--  Box width=240   LLM box width=244          -->
+  <!--                                             -->
+  <!--  ROW Y positions:                           -->
+  <!--  Plan boxes:     y=260..310  (h=50)         -->
+  <!--  LLM boxes:      y=340..540  (h=200)        -->
+  <!--  Outcome boxes:  y=575..643  (h=68)         -->
   <!-- ========================================== -->
 
   <!-- ===== TRIGGER BOX ===== -->
@@ -31,7 +36,7 @@
   <text x="540" y="42" font-size="13" font-weight="600" fill="#1a1a1a">New Candidate Interview</text>
   <text x="540" y="58" font-size="13" font-weight="600" fill="#1a1a1a">Request</text>
 
-  <!-- Arrow down -->
+  <!-- Arrow: trigger -> agent -->
   <line x1="620" y1="72" x2="620" y2="100" stroke="#6B7280" stroke-width="1.4" marker-end="url(#arrow)"/>
   <text x="632" y="92" font-size="11" fill="#6B7280" font-style="italic">Activates</text>
 
@@ -44,202 +49,204 @@
   <text x="532" y="127" font-size="14" font-weight="700" fill="#1a1a1a">Interviewer AI Agent</text>
   <text x="532" y="145" font-size="11" fill="#6B7280">Powered by NVIDIA NIM</text>
 
-  <!-- Arrow down to horizontal bar -->
-  <line x1="620" y1="156" x2="620" y2="190" stroke="#6B7280" stroke-width="1.4"/>
+  <!-- Arrow: agent -> horizontal bar -->
+  <line x1="620" y1="156" x2="620" y2="195" stroke="#6B7280" stroke-width="1.4"/>
 
   <!-- ===== HORIZONTAL CONNECTOR ===== -->
-  <line x1="210" y1="190" x2="1050" y2="190" stroke="#6B7280" stroke-width="1.4"/>
+  <line x1="210" y1="195" x2="1050" y2="195" stroke="#6B7280" stroke-width="1.4"/>
 
   <!-- 4 vertical drops + step labels -->
-  <line x1="210" y1="190" x2="210" y2="218" stroke="#6B7280" stroke-width="1.4" marker-end="url(#arrow)"/>
-  <line x1="490" y1="190" x2="490" y2="218" stroke="#6B7280" stroke-width="1.4" marker-end="url(#arrow)"/>
-  <line x1="770" y1="190" x2="770" y2="218" stroke="#6B7280" stroke-width="1.4" marker-end="url(#arrow)"/>
-  <line x1="1050" y1="190" x2="1050" y2="218" stroke="#6B7280" stroke-width="1.4" marker-end="url(#arrow)"/>
+  <line x1="210"  y1="195" x2="210"  y2="225" stroke="#6B7280" stroke-width="1.4"/>
+  <line x1="490"  y1="195" x2="490"  y2="225" stroke="#6B7280" stroke-width="1.4"/>
+  <line x1="770"  y1="195" x2="770"  y2="225" stroke="#6B7280" stroke-width="1.4"/>
+  <line x1="1050" y1="195" x2="1050" y2="225" stroke="#6B7280" stroke-width="1.4"/>
 
-  <text x="210" y="212" font-size="13" fill="#4A90D9" font-weight="600" text-anchor="middle">Step 1</text>
-  <text x="490" y="212" font-size="13" fill="#4A90D9" font-weight="600" text-anchor="middle">Step 2</text>
-  <text x="770" y="212" font-size="13" fill="#4A90D9" font-weight="600" text-anchor="middle">Step 3</text>
-  <text x="1050" y="212" font-size="13" fill="#4A90D9" font-weight="600" text-anchor="middle">Step 4</text>
+  <text x="210"  y="220" font-size="13" fill="#4A90D9" font-weight="600" text-anchor="middle">Step 1</text>
+  <text x="490"  y="220" font-size="13" fill="#4A90D9" font-weight="600" text-anchor="middle">Step 2</text>
+  <text x="770"  y="220" font-size="13" fill="#4A90D9" font-weight="600" text-anchor="middle">Step 3</text>
+  <text x="1050" y="220" font-size="13" fill="#4A90D9" font-weight="600" text-anchor="middle">Step 4</text>
 
-  <!-- ===== ROW LABELS (left side, rotated) ===== -->
-  <text font-size="12" fill="#4A90D9" font-weight="600" text-anchor="middle" transform="rotate(-90,28,280)">Plan Steps</text>
-  <text font-size="12" fill="#4A90D9" font-weight="600" text-anchor="middle" transform="rotate(-90,28,460)">LLM Decisioning</text>
-  <text font-size="12" fill="#4A90D9" font-weight="600" text-anchor="middle" transform="rotate(-90,28,680)">Outcome</text>
+  <!-- ===== ROW LABELS (left, vertical text) ===== -->
+  <!-- Plan Steps label — centered on y=285 -->
+  <text x="28" y="285" font-size="13" fill="#4A90D9" font-weight="700" text-anchor="middle" writing-mode="tb" glyph-orientation-vertical="0" letter-spacing="2" transform="rotate(-90,28,285)">Plan Steps</text>
 
-  <!-- Thin separator lines for row labels -->
-  <line x1="55" y1="230" x2="55" y2="330" stroke="#D4E4FC" stroke-width="1"/>
-  <line x1="55" y1="355" x2="55" y2="580" stroke="#D4E4FC" stroke-width="1"/>
-  <line x1="55" y1="610" x2="55" y2="750" stroke="#D4E4FC" stroke-width="1"/>
+  <!-- LLM Decisioning label — centered on y=440 -->
+  <text x="28" y="450" font-size="13" fill="#4A90D9" font-weight="700" text-anchor="middle" transform="rotate(-90,28,450)">LLM Decisioning</text>
 
-  <!-- ================================================================ -->
-  <!--  STEP 1 — Candidate Profile Ingestion     center=210            -->
-  <!-- ================================================================ -->
+  <!-- Outcome label — centered on y=645 -->
+  <text x="28" y="640" font-size="13" fill="#4A90D9" font-weight="700" text-anchor="middle" transform="rotate(-90,28,640)">Outcome</text>
 
-  <!-- Plan Step Box -->
-  <rect x="90" y="235" width="240" height="50" rx="8" fill="url(#stepGrad)" stroke="#B8C9E8" stroke-width="1" filter="url(#shadow)"/>
-  <circle cx="114" cy="260" r="8" fill="none" stroke="#4A90D9" stroke-width="1.4"/>
-  <line x1="120" y1="266" x2="125" y2="271" stroke="#4A90D9" stroke-width="1.4" stroke-linecap="round"/>
-  <text x="136" y="256" font-size="12.5" font-weight="700" fill="#1a1a1a">Candidate Profile</text>
-  <text x="136" y="272" font-size="12.5" font-weight="700" fill="#1a1a1a">Ingestion</text>
-
-  <!-- Arrow -->
-  <line x1="210" y1="285" x2="210" y2="310" stroke="#6B7280" stroke-width="1.2" marker-end="url(#arrow)"/>
-
-  <!-- LLM Decisioning Box -->
-  <rect x="88" y="315" width="244" height="200" rx="8" fill="white" stroke="#DCE4F0" stroke-width="1" filter="url(#shadow)"/>
-
-  <circle cx="108" cy="342" r="4" fill="#4A90D9"/>
-  <text x="118" y="338" font-size="11.5" fill="#333">Fetches GitHub repos,</text>
-  <text x="118" y="353" font-size="11.5" fill="#333">languages, and commit patterns</text>
-
-  <circle cx="108" cy="382" r="4" fill="#4A90D9"/>
-  <text x="118" y="378" font-size="11.5" fill="#333">Parses resume (PDF/DOCX/TXT)</text>
-  <text x="118" y="393" font-size="11.5" fill="#333">using intelligent LLM extraction</text>
-
-  <circle cx="108" cy="422" r="4" fill="#4A90D9"/>
-  <text x="118" y="418" font-size="11.5" fill="#333">Identifies key skills, projects,</text>
-  <text x="118" y="433" font-size="11.5" fill="#333">and experience areas</text>
-
-  <circle cx="108" cy="465" r="4" fill="#4A90D9"/>
-  <text x="118" y="461" font-size="11.5" fill="#333">Detects candidate role and</text>
-  <text x="118" y="476" font-size="11.5" fill="#333">industry from profile data</text>
-
-  <!-- Arrow -->
-  <line x1="210" y1="515" x2="210" y2="545" stroke="#6B7280" stroke-width="1.2" marker-end="url(#arrow)"/>
-
-  <!-- Outcome Box -->
-  <rect x="88" y="550" width="244" height="52" rx="8" fill="#EDF2FF" stroke="#B8C9E8" stroke-width="1" filter="url(#shadow)"/>
-  <circle cx="108" cy="576" r="4" fill="#4A90D9"/>
-  <text x="118" y="572" font-size="11.5" fill="#333">Comprehensive candidate</text>
-  <text x="118" y="587" font-size="11.5" fill="#333">profile for question generation</text>
+  <!-- Thin vertical separator between labels and content -->
+  <line x1="65" y1="240" x2="65" y2="720" stroke="#E0E7F1" stroke-width="1" stroke-dasharray="4,3"/>
 
   <!-- ================================================================ -->
-  <!--  STEP 2 — Personalized Question Generation   center=490         -->
+  <!--  STEP 1 — Candidate Profile Ingestion          center=210       -->
   <!-- ================================================================ -->
 
-  <!-- Plan Step Box -->
-  <rect x="370" y="235" width="240" height="50" rx="8" fill="url(#stepGrad)" stroke="#B8C9E8" stroke-width="1" filter="url(#shadow)"/>
-  <rect x="392" y="249" width="8" height="8" rx="1" fill="none" stroke="#4A90D9" stroke-width="1.2"/>
-  <rect x="403" y="249" width="8" height="8" rx="1" fill="none" stroke="#4A90D9" stroke-width="1.2"/>
-  <rect x="392" y="260" width="8" height="8" rx="1" fill="none" stroke="#4A90D9" stroke-width="1.2"/>
-  <rect x="403" y="260" width="8" height="8" rx="1" fill="none" stroke="#4A90D9" stroke-width="1.2"/>
-  <text x="418" y="256" font-size="12.5" font-weight="700" fill="#1a1a1a">Personalized Question</text>
-  <text x="418" y="272" font-size="12.5" font-weight="700" fill="#1a1a1a">Generation</text>
+  <!-- Plan Step Box  y=260..310 -->
+  <rect x="90" y="260" width="240" height="50" rx="8" fill="url(#stepGrad)" stroke="#B8C9E8" stroke-width="1" filter="url(#shadow)"/>
+  <circle cx="114" cy="285" r="8" fill="none" stroke="#4A90D9" stroke-width="1.4"/>
+  <line x1="120" y1="291" x2="125" y2="296" stroke="#4A90D9" stroke-width="1.4" stroke-linecap="round"/>
+  <text x="136" y="281" font-size="12.5" font-weight="700" fill="#1a1a1a">Candidate Profile</text>
+  <text x="136" y="297" font-size="12.5" font-weight="700" fill="#1a1a1a">Ingestion</text>
 
-  <!-- Arrow -->
-  <line x1="490" y1="285" x2="490" y2="310" stroke="#6B7280" stroke-width="1.2" marker-end="url(#arrow)"/>
+  <!-- Arrow: plan -> LLM -->
+  <line x1="210" y1="310" x2="210" y2="340" stroke="#6B7280" stroke-width="1.2" marker-end="url(#arrow)"/>
 
-  <!-- LLM Decisioning Box -->
-  <rect x="368" y="315" width="244" height="200" rx="8" fill="white" stroke="#DCE4F0" stroke-width="1" filter="url(#shadow)"/>
+  <!-- LLM Decisioning Box  y=345..545 -->
+  <rect x="88" y="345" width="244" height="200" rx="8" fill="white" stroke="#DCE4F0" stroke-width="1" filter="url(#shadow)"/>
 
-  <circle cx="388" cy="342" r="4" fill="#4A90D9"/>
-  <text x="398" y="338" font-size="11.5" fill="#333">Generates 15 tailored questions</text>
-  <text x="398" y="353" font-size="11.5" fill="#333">across 5 categories</text>
+  <circle cx="108" cy="376" r="4" fill="#4A90D9"/>
+  <text x="120" y="372" font-size="11.5" fill="#333">Fetches GitHub repos,</text>
+  <text x="120" y="387" font-size="11.5" fill="#333">languages, and commit patterns</text>
 
-  <circle cx="388" cy="382" r="4" fill="#4A90D9"/>
-  <text x="398" y="378" font-size="11.5" fill="#333">Applies interviewer persona</text>
-  <text x="398" y="393" font-size="11.5" fill="#333">tone and focus areas</text>
+  <circle cx="108" cy="418" r="4" fill="#4A90D9"/>
+  <text x="120" y="414" font-size="11.5" fill="#333">Parses resume (PDF/DOCX/TXT)</text>
+  <text x="120" y="429" font-size="11.5" fill="#333">using intelligent LLM extraction</text>
 
-  <circle cx="388" cy="422" r="4" fill="#4A90D9"/>
-  <text x="398" y="418" font-size="11.5" fill="#333">Grounds every question in the</text>
-  <text x="398" y="433" font-size="11.5" fill="#333">candidate's real projects &amp; code</text>
+  <circle cx="108" cy="460" r="4" fill="#4A90D9"/>
+  <text x="120" y="456" font-size="11.5" fill="#333">Identifies key skills, projects,</text>
+  <text x="120" y="471" font-size="11.5" fill="#333">and experience areas</text>
 
-  <circle cx="388" cy="465" r="4" fill="#4A90D9"/>
-  <text x="398" y="461" font-size="11.5" fill="#333">Sets initial difficulty based on</text>
-  <text x="398" y="476" font-size="11.5" fill="#333">detected experience level</text>
+  <circle cx="108" cy="504" r="4" fill="#4A90D9"/>
+  <text x="120" y="500" font-size="11.5" fill="#333">Detects candidate role and</text>
+  <text x="120" y="515" font-size="11.5" fill="#333">industry from profile data</text>
 
-  <!-- Arrow -->
-  <line x1="490" y1="515" x2="490" y2="545" stroke="#6B7280" stroke-width="1.2" marker-end="url(#arrow)"/>
+  <!-- Arrow: LLM -> Outcome -->
+  <line x1="210" y1="545" x2="210" y2="575" stroke="#6B7280" stroke-width="1.2" marker-end="url(#arrow)"/>
 
-  <!-- Outcome Box -->
-  <rect x="368" y="550" width="244" height="52" rx="8" fill="#EDF2FF" stroke="#B8C9E8" stroke-width="1" filter="url(#shadow)"/>
-  <circle cx="388" cy="576" r="4" fill="#4A90D9"/>
-  <text x="398" y="572" font-size="11.5" fill="#333">A personalized, role-specific</text>
-  <text x="398" y="587" font-size="11.5" fill="#333">question bank ready to deliver</text>
+  <!-- Outcome Box  y=580..648  (h=68 for ALL columns) -->
+  <rect x="88" y="580" width="244" height="68" rx="8" fill="#EDF2FF" stroke="#B8C9E8" stroke-width="1" filter="url(#shadow)"/>
+  <circle cx="108" cy="606" r="4" fill="#4A90D9"/>
+  <text x="120" y="602" font-size="11.5" fill="#333">Comprehensive candidate</text>
+  <text x="120" y="617" font-size="11.5" fill="#333">profile for question generation</text>
 
   <!-- ================================================================ -->
-  <!--  STEP 3 — Adaptive Interview Session   center=770               -->
+  <!--  STEP 2 — Personalized Question Generation     center=490       -->
   <!-- ================================================================ -->
 
-  <!-- Plan Step Box -->
-  <rect x="650" y="235" width="240" height="50" rx="8" fill="url(#stepGrad)" stroke="#B8C9E8" stroke-width="1" filter="url(#shadow)"/>
-  <rect x="673" y="249" width="16" height="12" rx="2" fill="none" stroke="#4A90D9" stroke-width="1.2"/>
-  <polygon points="679,261 682,266 685,261" fill="none" stroke="#4A90D9" stroke-width="1.2" stroke-linejoin="round"/>
-  <text x="696" y="256" font-size="12.5" font-weight="700" fill="#1a1a1a">Adaptive Interview</text>
-  <text x="696" y="272" font-size="12.5" font-weight="700" fill="#1a1a1a">Session</text>
+  <!-- Plan Step Box  y=260..310 -->
+  <rect x="370" y="260" width="240" height="50" rx="8" fill="url(#stepGrad)" stroke="#B8C9E8" stroke-width="1" filter="url(#shadow)"/>
+  <rect x="392" y="274" width="8" height="8" rx="1" fill="none" stroke="#4A90D9" stroke-width="1.2"/>
+  <rect x="403" y="274" width="8" height="8" rx="1" fill="none" stroke="#4A90D9" stroke-width="1.2"/>
+  <rect x="392" y="285" width="8" height="8" rx="1" fill="none" stroke="#4A90D9" stroke-width="1.2"/>
+  <rect x="403" y="285" width="8" height="8" rx="1" fill="none" stroke="#4A90D9" stroke-width="1.2"/>
+  <text x="418" y="281" font-size="12.5" font-weight="700" fill="#1a1a1a">Personalized Question</text>
+  <text x="418" y="297" font-size="12.5" font-weight="700" fill="#1a1a1a">Generation</text>
 
-  <!-- Arrow -->
-  <line x1="770" y1="285" x2="770" y2="310" stroke="#6B7280" stroke-width="1.2" marker-end="url(#arrow)"/>
+  <!-- Arrow: plan -> LLM -->
+  <line x1="490" y1="310" x2="490" y2="340" stroke="#6B7280" stroke-width="1.2" marker-end="url(#arrow)"/>
 
-  <!-- LLM Decisioning Box -->
-  <rect x="648" y="315" width="244" height="200" rx="8" fill="white" stroke="#DCE4F0" stroke-width="1" filter="url(#shadow)"/>
+  <!-- LLM Decisioning Box  y=345..545 -->
+  <rect x="368" y="345" width="244" height="200" rx="8" fill="white" stroke="#DCE4F0" stroke-width="1" filter="url(#shadow)"/>
 
-  <circle cx="668" cy="342" r="4" fill="#4A90D9"/>
-  <text x="678" y="338" font-size="11.5" fill="#333">Conducts real-time browser</text>
-  <text x="678" y="353" font-size="11.5" fill="#333">interview with 100s countdown</text>
+  <circle cx="388" cy="376" r="4" fill="#4A90D9"/>
+  <text x="400" y="372" font-size="11.5" fill="#333">Generates 15 tailored questions</text>
+  <text x="400" y="387" font-size="11.5" fill="#333">across 5 categories</text>
 
-  <circle cx="668" cy="382" r="4" fill="#4A90D9"/>
-  <text x="678" y="378" font-size="11.5" fill="#333">Adjusts difficulty dynamically</text>
-  <text x="678" y="393" font-size="11.5" fill="#333">based on rolling performance</text>
+  <circle cx="388" cy="418" r="4" fill="#4A90D9"/>
+  <text x="400" y="414" font-size="11.5" fill="#333">Applies interviewer persona</text>
+  <text x="400" y="429" font-size="11.5" fill="#333">tone and focus areas</text>
 
-  <circle cx="668" cy="422" r="4" fill="#4A90D9"/>
-  <text x="678" y="418" font-size="11.5" fill="#333">Generates follow-up probes:</text>
-  <text x="678" y="433" font-size="11.5" fill="#333">clarify, dig deeper, or move on</text>
+  <circle cx="388" cy="460" r="4" fill="#4A90D9"/>
+  <text x="400" y="456" font-size="11.5" fill="#333">Grounds every question in the</text>
+  <text x="400" y="471" font-size="11.5" fill="#333">candidate's real projects &amp; code</text>
 
-  <circle cx="668" cy="465" r="4" fill="#4A90D9"/>
-  <text x="678" y="461" font-size="11.5" fill="#333">Tracks claims, contradictions,</text>
-  <text x="678" y="476" font-size="11.5" fill="#333">and demonstrated skills live</text>
+  <circle cx="388" cy="504" r="4" fill="#4A90D9"/>
+  <text x="400" y="500" font-size="11.5" fill="#333">Sets initial difficulty based on</text>
+  <text x="400" y="515" font-size="11.5" fill="#333">detected experience level</text>
 
-  <!-- Arrow -->
-  <line x1="770" y1="515" x2="770" y2="545" stroke="#6B7280" stroke-width="1.2" marker-end="url(#arrow)"/>
+  <!-- Arrow: LLM -> Outcome -->
+  <line x1="490" y1="545" x2="490" y2="575" stroke="#6B7280" stroke-width="1.2" marker-end="url(#arrow)"/>
 
-  <!-- Outcome Box -->
-  <rect x="648" y="550" width="244" height="52" rx="8" fill="#EDF2FF" stroke="#B8C9E8" stroke-width="1" filter="url(#shadow)"/>
-  <circle cx="668" cy="576" r="4" fill="#4A90D9"/>
-  <text x="678" y="572" font-size="11.5" fill="#333">Rich interview data with</text>
-  <text x="678" y="587" font-size="11.5" fill="#333">behavioral and integrity signals</text>
+  <!-- Outcome Box  y=580..648 -->
+  <rect x="368" y="580" width="244" height="68" rx="8" fill="#EDF2FF" stroke="#B8C9E8" stroke-width="1" filter="url(#shadow)"/>
+  <circle cx="388" cy="606" r="4" fill="#4A90D9"/>
+  <text x="400" y="602" font-size="11.5" fill="#333">A personalized, role-specific</text>
+  <text x="400" y="617" font-size="11.5" fill="#333">question bank ready to deliver</text>
 
   <!-- ================================================================ -->
-  <!--  STEP 4 — Evaluation & Report Generation   center=1050          -->
+  <!--  STEP 3 — Adaptive Interview Session           center=770       -->
   <!-- ================================================================ -->
 
-  <!-- Plan Step Box -->
-  <rect x="930" y="235" width="240" height="50" rx="8" fill="url(#stepGrad)" stroke="#B8C9E8" stroke-width="1" filter="url(#shadow)"/>
-  <polygon points="954,250 957,258 964,258 958,263 960,270 954,266 948,270 950,263 944,258 951,258" fill="none" stroke="#4A90D9" stroke-width="1.2"/>
-  <text x="972" y="256" font-size="12.5" font-weight="700" fill="#1a1a1a">Evaluation &amp; Report</text>
-  <text x="972" y="272" font-size="12.5" font-weight="700" fill="#1a1a1a">Generation</text>
+  <!-- Plan Step Box  y=260..310 -->
+  <rect x="650" y="260" width="240" height="50" rx="8" fill="url(#stepGrad)" stroke="#B8C9E8" stroke-width="1" filter="url(#shadow)"/>
+  <rect x="673" y="274" width="16" height="12" rx="2" fill="none" stroke="#4A90D9" stroke-width="1.2"/>
+  <polygon points="679,286 682,291 685,286" fill="none" stroke="#4A90D9" stroke-width="1.2" stroke-linejoin="round"/>
+  <text x="696" y="281" font-size="12.5" font-weight="700" fill="#1a1a1a">Adaptive Interview</text>
+  <text x="696" y="297" font-size="12.5" font-weight="700" fill="#1a1a1a">Session</text>
 
-  <!-- Arrow -->
-  <line x1="1050" y1="285" x2="1050" y2="310" stroke="#6B7280" stroke-width="1.2" marker-end="url(#arrow)"/>
+  <!-- Arrow: plan -> LLM -->
+  <line x1="770" y1="310" x2="770" y2="340" stroke="#6B7280" stroke-width="1.2" marker-end="url(#arrow)"/>
 
-  <!-- LLM Decisioning Box -->
-  <rect x="928" y="315" width="244" height="200" rx="8" fill="white" stroke="#DCE4F0" stroke-width="1" filter="url(#shadow)"/>
+  <!-- LLM Decisioning Box  y=345..545 -->
+  <rect x="648" y="345" width="244" height="200" rx="8" fill="white" stroke="#DCE4F0" stroke-width="1" filter="url(#shadow)"/>
 
-  <circle cx="948" cy="342" r="4" fill="#4A90D9"/>
-  <text x="958" y="338" font-size="11.5" fill="#333">Scores answers on accuracy,</text>
-  <text x="958" y="353" font-size="11.5" fill="#333">depth, communication, ownership</text>
+  <circle cx="668" cy="376" r="4" fill="#4A90D9"/>
+  <text x="680" y="372" font-size="11.5" fill="#333">Conducts real-time browser</text>
+  <text x="680" y="387" font-size="11.5" fill="#333">interview with 100s countdown</text>
 
-  <circle cx="948" cy="382" r="4" fill="#4A90D9"/>
-  <text x="958" y="378" font-size="11.5" fill="#333">Detects suspicious patterns:</text>
-  <text x="958" y="393" font-size="11.5" fill="#333">speed anomalies, generic answers</text>
+  <circle cx="668" cy="418" r="4" fill="#4A90D9"/>
+  <text x="680" y="414" font-size="11.5" fill="#333">Adjusts difficulty dynamically</text>
+  <text x="680" y="429" font-size="11.5" fill="#333">based on rolling performance</text>
 
-  <circle cx="948" cy="422" r="4" fill="#4A90D9"/>
-  <text x="958" y="418" font-size="11.5" fill="#333">Generates behavioral authenticity</text>
-  <text x="958" y="433" font-size="11.5" fill="#333">fingerprint for each candidate</text>
+  <circle cx="668" cy="460" r="4" fill="#4A90D9"/>
+  <text x="680" y="456" font-size="11.5" fill="#333">Generates follow-up probes:</text>
+  <text x="680" y="471" font-size="11.5" fill="#333">clarify, dig deeper, or move on</text>
 
-  <circle cx="948" cy="465" r="4" fill="#4A90D9"/>
-  <text x="958" y="461" font-size="11.5" fill="#333">Produces full Markdown + PDF</text>
-  <text x="958" y="476" font-size="11.5" fill="#333">report with hire/no-hire verdict</text>
+  <circle cx="668" cy="504" r="4" fill="#4A90D9"/>
+  <text x="680" y="500" font-size="11.5" fill="#333">Tracks claims, contradictions,</text>
+  <text x="680" y="515" font-size="11.5" fill="#333">and demonstrated skills live</text>
 
-  <!-- Arrow -->
-  <line x1="1050" y1="515" x2="1050" y2="545" stroke="#6B7280" stroke-width="1.2" marker-end="url(#arrow)"/>
+  <!-- Arrow: LLM -> Outcome -->
+  <line x1="770" y1="545" x2="770" y2="575" stroke="#6B7280" stroke-width="1.2" marker-end="url(#arrow)"/>
 
-  <!-- Outcome Box -->
-  <rect x="928" y="550" width="244" height="68" rx="8" fill="#EDF2FF" stroke="#B8C9E8" stroke-width="1" filter="url(#shadow)"/>
-  <circle cx="948" cy="572" r="4" fill="#4A90D9"/>
-  <text x="958" y="576" font-size="11.5" fill="#333">Complete hiring evaluation</text>
-  <text x="958" y="591" font-size="11.5" fill="#333">with hire/no-hire recommendation</text>
-  <circle cx="948" cy="608" r="4" fill="#4A90D9"/>
-  <text x="958" y="612" font-size="11.5" fill="#333">Owner dashboard with replay</text>
+  <!-- Outcome Box  y=580..648 -->
+  <rect x="648" y="580" width="244" height="68" rx="8" fill="#EDF2FF" stroke="#B8C9E8" stroke-width="1" filter="url(#shadow)"/>
+  <circle cx="668" cy="606" r="4" fill="#4A90D9"/>
+  <text x="680" y="602" font-size="11.5" fill="#333">Rich interview data with</text>
+  <text x="680" y="617" font-size="11.5" fill="#333">behavioral and integrity signals</text>
+
+  <!-- ================================================================ -->
+  <!--  STEP 4 — Evaluation & Report Generation       center=1050      -->
+  <!-- ================================================================ -->
+
+  <!-- Plan Step Box  y=260..310 -->
+  <rect x="930" y="260" width="240" height="50" rx="8" fill="url(#stepGrad)" stroke="#B8C9E8" stroke-width="1" filter="url(#shadow)"/>
+  <polygon points="954,275 957,283 964,283 958,288 960,295 954,291 948,295 950,288 944,283 951,283" fill="none" stroke="#4A90D9" stroke-width="1.2"/>
+  <text x="972" y="281" font-size="12.5" font-weight="700" fill="#1a1a1a">Evaluation &amp; Report</text>
+  <text x="972" y="297" font-size="12.5" font-weight="700" fill="#1a1a1a">Generation</text>
+
+  <!-- Arrow: plan -> LLM -->
+  <line x1="1050" y1="310" x2="1050" y2="340" stroke="#6B7280" stroke-width="1.2" marker-end="url(#arrow)"/>
+
+  <!-- LLM Decisioning Box  y=345..545 -->
+  <rect x="928" y="345" width="244" height="200" rx="8" fill="white" stroke="#DCE4F0" stroke-width="1" filter="url(#shadow)"/>
+
+  <circle cx="948" cy="376" r="4" fill="#4A90D9"/>
+  <text x="960" y="372" font-size="11.5" fill="#333">Scores answers on accuracy,</text>
+  <text x="960" y="387" font-size="11.5" fill="#333">depth, communication, ownership</text>
+
+  <circle cx="948" cy="418" r="4" fill="#4A90D9"/>
+  <text x="960" y="414" font-size="11.5" fill="#333">Detects suspicious patterns:</text>
+  <text x="960" y="429" font-size="11.5" fill="#333">speed anomalies, generic answers</text>
+
+  <circle cx="948" cy="460" r="4" fill="#4A90D9"/>
+  <text x="960" y="456" font-size="11.5" fill="#333">Generates behavioral authenticity</text>
+  <text x="960" y="471" font-size="11.5" fill="#333">fingerprint for each candidate</text>
+
+  <circle cx="948" cy="504" r="4" fill="#4A90D9"/>
+  <text x="960" y="500" font-size="11.5" fill="#333">Produces full Markdown + PDF</text>
+  <text x="960" y="515" font-size="11.5" fill="#333">report with hire/no-hire verdict</text>
+
+  <!-- Arrow: LLM -> Outcome -->
+  <line x1="1050" y1="545" x2="1050" y2="575" stroke="#6B7280" stroke-width="1.2" marker-end="url(#arrow)"/>
+
+  <!-- Outcome Box  y=580..648  (SAME height as all others) -->
+  <rect x="928" y="580" width="244" height="68" rx="8" fill="#EDF2FF" stroke="#B8C9E8" stroke-width="1" filter="url(#shadow)"/>
+  <circle cx="948" cy="600" r="4" fill="#4A90D9"/>
+  <text x="960" y="604" font-size="11.5" fill="#333">Complete hiring evaluation</text>
+  <circle cx="948" cy="624" r="4" fill="#4A90D9"/>
+  <text x="960" y="628" font-size="11.5" fill="#333">Owner dashboard with replay</text>
 
 </svg>
