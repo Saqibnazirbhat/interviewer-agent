@@ -562,7 +562,7 @@ function populateProfile(p){
   $('pf-role').textContent=p.detected_role||'Professional';
   $('pf-industry').textContent=p.industry||'General';
   $('pf-seniority').textContent=p.seniority||'Mid Level';
-  $('pf-experience').textContent=(p.years_of_experience||0)+' years';
+  const yoe=p.years_of_experience||0;$('pf-experience').textContent=yoe>=1?Math.round(yoe)+' years':Math.round(yoe*12)+' months';
   const tags=$('project-tags');tags.innerHTML='';
   (p.projects||[]).slice(0,3).forEach(pr=>{const s=document.createElement('span');s.className='chip';s.textContent=pr.name||pr.description||'Project';tags.appendChild(s)});
   if(!p.projects||!p.projects.length)tags.innerHTML='<span class="chip">No projects detected</span>';

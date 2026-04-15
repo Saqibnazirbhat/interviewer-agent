@@ -106,7 +106,7 @@ Extract the following information and return as a JSON object:
   "detected_role": "their current or most recent job title (e.g., Software Engineer, Registered Nurse, Marketing Manager, Corporate Lawyer)",
   "industry": "the industry they work in (e.g., Technology, Healthcare, Finance, Education, Legal, Design, Marketing, Hospitality)",
   "seniority": "one of: Entry Level, Junior, Mid Level, Senior, Lead, Manager, Director, VP, Executive, C-Suite",
-  "years_of_experience": estimated total years of professional experience as a number,
+  "years_of_experience": "calculate ONLY from actual paid work experience dates listed under Professional/Work Experience sections. Internships count. Do NOT count education, personal projects, or academic coursework. If total is less than 1 year, use a decimal (e.g., 0.25 for 3 months). Return as a number.",
   "skills": ["list", "of", "key", "skills", "from", "resume"],
   "work_experience": [
     {{
