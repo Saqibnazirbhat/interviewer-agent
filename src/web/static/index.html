@@ -4,249 +4,18 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Interviewer Agent</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' fill='none' stroke='%23888' stroke-width='1.2'><path d='M16 4l10 6v12l-10 6L6 22V10z'/><path d='M16 10l6 3.5v7L16 24l-6-3.5v-7z' stroke-opacity='.5'/></svg>">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' fill='none' stroke='%23a78bfa' stroke-width='1.2'><path d='M16 4l10 6v12l-10 6L6 22V10z'/><path d='M16 10l6 3.5v7L16 24l-6-3.5v-7z' stroke-opacity='.5'/></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<style>
-:root{
-  --bg:#08080a;--surface:#111113;--surface-2:#18181b;--surface-3:#1e1e21;
-  --border:rgba(255,255,255,.06);--border-2:rgba(255,255,255,.1);
-  --text:#e4e4e7;--text-2:#a1a1aa;--text-3:#52525b;--text-4:#3f3f46;
-  --accent:#a78bfa;--accent-dim:rgba(167,139,250,.08);--accent-border:rgba(167,139,250,.15);
-  --green:#4ade80;--green-dim:rgba(74,222,128,.08);
-  --amber:#fbbf24;--amber-dim:rgba(251,191,36,.08);
-  --red:#f87171;--red-dim:rgba(248,113,113,.08);
-  --radius:10px;--radius-sm:6px;
-  --font:'Inter',system-ui,-apple-system,sans-serif;
-}
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html{font-size:16px;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
-body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;line-height:1.6}
-
-/* Nav */
-.nav{position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:0 24px;height:48px;background:rgba(8,8,10,.85);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom:1px solid var(--border)}
-.nav-brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--text)}
-.nav-logo svg{display:block}
-.nav-name{font-size:.82rem;font-weight:600;letter-spacing:-.01em;color:var(--text-2)}
-
-/* Shell */
-.shell{max-width:680px;margin:0 auto;padding:48px 24px 120px}
-@media(min-width:640px){.shell{padding:64px 32px 120px}}
-
-/* Screen */
-.screen{display:none;opacity:0;transform:translateY(8px)}
-.screen.active{display:block;animation:fadeUp .5s cubic-bezier(.16,1,.3,1) forwards}
-@keyframes fadeUp{to{opacity:1;transform:translateY(0)}}
-
-/* Card */
-.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius)}
-
-/* Buttons */
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:9px 18px;border-radius:var(--radius-sm);border:1px solid transparent;font-family:var(--font);font-size:.82rem;font-weight:500;cursor:pointer;transition:all .15s ease;outline:none;text-decoration:none;color:var(--text)}
-.btn:focus-visible{box-shadow:0 0 0 2px var(--bg),0 0 0 4px rgba(167,139,250,.3)}
-.btn-primary{background:#fff;color:#000;border-color:#fff}
-.btn-primary:hover{background:#e4e4e7}
-.btn-primary:active{transform:scale(.98)}
-.btn-primary:disabled{opacity:.3;cursor:not-allowed;transform:none}
-.btn-secondary{background:var(--surface-2);color:var(--text-2);border-color:var(--border)}
-.btn-secondary:hover{background:var(--surface-3);border-color:var(--border-2);color:var(--text)}
-.btn-danger{background:var(--red-dim);color:var(--red);border-color:transparent}
-.btn-sm{padding:6px 12px;font-size:.78rem}
-.btn-lg{padding:11px 24px;font-size:.85rem}
-.btn-icon{padding:7px;border-radius:var(--radius-sm);background:transparent;border:1px solid var(--border);color:var(--text-3)}
-.btn-icon:hover{background:var(--surface-2);color:var(--text);border-color:var(--border-2)}
-
-/* Badge */
-.badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:4px;font-size:.68rem;font-weight:600;letter-spacing:.03em}
-.badge-accent{background:var(--accent-dim);color:var(--accent)}
-.badge-green{background:var(--green-dim);color:var(--green)}
-.badge-amber{background:var(--amber-dim);color:var(--amber)}
-.badge-red{background:var(--red-dim);color:var(--red)}
-
-/* Input */
-.input{width:100%;padding:9px 14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-family:var(--font);font-size:.85rem;outline:none;transition:border-color .15s}
-.input:focus{border-color:var(--accent-border)}
-.input::placeholder{color:var(--text-4)}
-textarea.input{resize:vertical;min-height:160px;line-height:1.7}
-
-/* Toast */
-.toast{position:fixed;top:56px;left:50%;transform:translateX(-50%) translateY(-120%);z-index:9999;min-width:300px;max-width:440px;background:var(--surface-2);border:1px solid var(--border-2);border-radius:var(--radius);padding:12px 16px;box-shadow:0 8px 32px rgba(0,0,0,.4);transition:transform .3s cubic-bezier(.16,1,.3,1)}
-.toast.show{transform:translateX(-50%) translateY(0)}
-.toast-inner{display:flex;align-items:flex-start;gap:10px}
-.toast-icon{width:16px;height:16px;flex-shrink:0;margin-top:1px}
-.toast-body h4{font-size:.78rem;font-weight:600;margin-bottom:1px}
-.toast-body p{font-size:.78rem;color:var(--text-2);line-height:1.5}
-
-/* Loading */
-.loader{display:flex;flex-direction:column;align-items:center;gap:14px;padding:56px 24px}
-.loader-bar{width:120px;height:1px;background:var(--surface-3);border-radius:1px;overflow:hidden;position:relative}
-.loader-bar::after{content:'';position:absolute;left:0;top:0;height:100%;width:40%;background:var(--text-3);border-radius:1px;animation:loaderSlide 1.2s ease-in-out infinite}
-@keyframes loaderSlide{0%{left:-40%}100%{left:100%}}
-.loader p{font-size:.82rem;color:var(--text-4)}
-
-/* Geometric decoration */
-.geo{pointer-events:none;user-select:none}
-.geo-line{stroke:rgba(255,255,255,.04);fill:none;stroke-width:.8}
-.geo-line-accent{stroke:rgba(167,139,250,.06);fill:none;stroke-width:.8}
-
-/* ================================================================
-   SCREEN 1 — WELCOME
-   ================================================================ */
-.hero{text-align:center;padding:40px 0 48px;position:relative}
-.hero-geo{position:absolute;top:-20px;left:50%;transform:translateX(-50%);opacity:.35}
-.hero-label{font-size:.68rem;font-weight:500;color:var(--text-4);letter-spacing:.1em;text-transform:uppercase;margin-bottom:20px}
-.hero h1{font-size:clamp(1.6rem,3.5vw,2.2rem);font-weight:600;letter-spacing:-.03em;line-height:1.2;color:var(--text)}
-.hero p{color:var(--text-3);font-size:.88rem;margin-top:12px;max-width:420px;margin-inline:auto;font-weight:400}
-
-.cards-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:32px}
-@media(max-width:560px){.cards-row{grid-template-columns:1fr}}
-.upload-card,.github-card{padding:24px}
-.card-head{display:flex;align-items:center;gap:8px;margin-bottom:4px}
-.card-head h3{font-size:.85rem;font-weight:600}
-.card-head svg{width:14px;height:14px;color:var(--text-3)}
-.card-sub{font-size:.75rem;color:var(--text-4);margin-bottom:16px}
-
-.dropzone{border:1px dashed var(--border-2);border-radius:var(--radius);padding:28px 16px;cursor:pointer;text-align:center;transition:all .2s;background:transparent}
-.dropzone:hover,.dropzone.over{border-color:var(--text-3);background:rgba(255,255,255,.01)}
-.dropzone.done{border-color:var(--green);border-style:solid;background:var(--green-dim)}
-.dropzone svg{width:24px;height:24px;color:var(--text-4);margin-bottom:8px;display:block;margin-inline:auto}
-.dropzone.done svg{color:var(--green)}
-.dropzone p{font-size:.78rem;color:var(--text-3);line-height:1.6}
-.dropzone .browse{color:var(--text);font-weight:500;text-decoration:underline;text-underline-offset:2px}
-.dropzone .exts{font-size:.65rem;color:var(--text-4);margin-top:4px}
-.dropzone .chosen-file{font-size:.78rem;color:var(--green);font-weight:500;margin-top:4px;word-break:break-all}
-
-.github-field{margin-top:4px}
-.github-field label{font-size:.72rem;color:var(--text-4);margin-bottom:4px;display:block;letter-spacing:.02em}
-.begin-wrap{text-align:center}
-
-/* ================================================================
-   SCREEN 2 — PROFILE
-   ================================================================ */
-.s2-head{margin-bottom:24px}
-.s2-head h2{font-size:1.1rem;font-weight:600;letter-spacing:-.02em}
-.s2-head p{font-size:.8rem;color:var(--text-3);margin-top:4px}
-
-.profile-panel{padding:24px;margin-bottom:24px}
-.profile-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px 24px}
-@media(max-width:560px){.profile-grid{grid-template-columns:1fr}}
-.pf{display:flex;flex-direction:column;gap:2px}
-.pf-label{font-size:.65rem;font-weight:600;color:var(--text-4);text-transform:uppercase;letter-spacing:.06em}
-.pf-val{font-size:.88rem;font-weight:500;color:var(--text)}
-.pf .input{display:none;margin-top:2px}
-.pf .input.vis{display:block}
-.pf .pf-val.hid{display:none}
-.pf-divider{grid-column:1/-1;height:1px;background:var(--border);margin:4px 0}
-
-.projects-row{margin-top:16px}
-.projects-row h4{font-size:.65rem;font-weight:600;color:var(--text-4);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
-.chip{display:inline-flex;padding:4px 12px;border:1px solid var(--border);border-radius:4px;font-size:.75rem;color:var(--text-2);font-weight:400;margin:0 6px 6px 0;background:transparent}
-
-.confirm-row{display:flex;align-items:center;gap:10px;margin-top:16px;flex-wrap:wrap}
-.confirm-row span{font-size:.82rem;color:var(--text-3)}
-
-.persona-heading{font-size:.88rem;font-weight:600;letter-spacing:-.01em;margin:32px 0 14px;color:var(--text-2)}
-.persona-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:32px}
-@media(max-width:560px){.persona-grid{grid-template-columns:1fr}}
-.persona{padding:18px;cursor:pointer;position:relative;overflow:hidden;transition:all .2s}
-.persona:hover{border-color:var(--border-2);background:rgba(255,255,255,.015)}
-.persona.picked{border-color:rgba(167,139,250,.3);background:var(--accent-dim)}
-.persona-icon{width:32px;height:32px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:700;color:rgba(255,255,255,.8);margin-bottom:10px}
-.persona-icon.pi-tech{background:rgba(99,102,241,.2);color:#a5b4fc}
-.persona-icon.pi-mgr{background:rgba(14,165,233,.2);color:#7dd3fc}
-.persona-icon.pi-hr{background:rgba(34,197,94,.2);color:#86efac}
-.persona-icon.pi-exec{background:rgba(168,85,247,.2);color:#d8b4fe}
-.persona h4{font-size:.82rem;font-weight:600;margin-bottom:3px}
-.persona p{font-size:.72rem;color:var(--text-3);line-height:1.5}
-.start-wrap{text-align:center}
-
-/* ================================================================
-   SCREEN 3 — INTERVIEW
-   ================================================================ */
-.iv-bar{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;margin-bottom:12px;flex-wrap:wrap;gap:8px}
-.iv-left{display:flex;align-items:center;gap:10px}
-.iv-left .iv-name{font-size:.82rem;font-weight:500;color:var(--text-2)}
-.iv-tag{font-size:.68rem;font-weight:500;color:var(--text-3);background:var(--surface-2);padding:3px 8px;border-radius:4px;border:1px solid var(--border)}
-.iv-right{display:flex;align-items:center;gap:14px}
-.iv-q-count{font-size:.75rem;color:var(--text-4)}
-.iv-clock{font-variant-numeric:tabular-nums;font-size:.85rem;font-weight:600;color:var(--text-2);transition:color .3s}
-.iv-clock.warn{color:var(--amber)}
-.iv-clock.danger{color:var(--red);animation:timerPulse 1s ease-in-out infinite}
-@keyframes timerPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(1.06)}}
-.iv-timeup-msg{text-align:center;padding:16px;margin-bottom:12px;font-size:.82rem;font-weight:500;color:var(--amber);background:var(--amber-dim);border:1px solid rgba(251,191,36,.1);border-radius:var(--radius);animation:fadeUp .3s ease forwards}
-
-.iv-progress{height:1px;background:var(--surface-3);margin-bottom:28px;overflow:hidden}
-.iv-progress-fill{height:100%;background:var(--text-3);transition:width .5s ease}
-
-.iv-intro{padding:32px 24px;margin-bottom:20px;border-left:2px solid var(--accent-border);text-align:center}
-.iv-intro p{font-size:.92rem;color:var(--text-2);line-height:1.9;font-style:italic;text-align:left}
-.iv-intro-btn{text-align:center;margin-top:24px}
-
-.q-card{padding:24px;margin-bottom:14px;border-left:2px solid var(--border-2)}
-.q-card.followup{border-left-color:var(--amber)}
-.q-meta{display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap}
-.q-num{font-size:.65rem;font-weight:600;color:var(--text-4);text-transform:uppercase;letter-spacing:.04em}
-.q-cat{font-size:.65rem;font-weight:500;color:var(--text-4);text-transform:uppercase;letter-spacing:.04em}
-.q-followup-badge{font-size:.65rem;font-weight:600;padding:2px 8px;border-radius:4px;background:var(--amber-dim);color:var(--amber);letter-spacing:.02em}
-.q-text{font-size:.92rem;line-height:1.8;color:var(--text);font-weight:400}
-
-.ans-wrap{margin-bottom:14px}
-.ans-foot{display:flex;justify-content:space-between;align-items:center;margin-top:8px;flex-wrap:wrap;gap:8px}
-.ans-chars{font-size:.68rem;color:var(--text-4)}
-.ans-btns{display:flex;gap:6px;flex-wrap:wrap}
-
-/* Feedback */
-.feedback-bar{display:flex;align-items:center;gap:12px;margin-bottom:12px;min-height:24px;padding:0 2px;opacity:0;transition:opacity .35s}
-.feedback-bar.visible{opacity:1}
-.listening-indicator{display:flex;align-items:center;gap:5px}
-.listening-dots{display:flex;gap:3px}
-.listening-dots span{width:3px;height:3px;border-radius:50%;background:var(--text-3);animation:listenPulse 1.4s ease-in-out infinite;opacity:.3}
-.listening-dots span:nth-child(2){animation-delay:.2s}
-.listening-dots span:nth-child(3){animation-delay:.4s}
-@keyframes listenPulse{0%,100%{opacity:.2;transform:scale(.8)}50%{opacity:1;transform:scale(1.2)}}
-.listening-label{font-size:.68rem;color:var(--text-4);font-style:italic}
-.micro-ack{font-size:.72rem;color:var(--text-3);font-style:italic;opacity:0;transition:opacity .3s;white-space:nowrap}
-.micro-ack.show{animation:ackFade 2.5s ease-in-out forwards}
-@keyframes ackFade{0%{opacity:0;transform:translateY(3px)}12%{opacity:1;transform:translateY(0)}75%{opacity:1}100%{opacity:0}}
-.confidence-wrap{display:flex;align-items:center;gap:6px;margin-left:auto}
-.confidence-label{font-size:.62rem;color:var(--text-4);text-transform:uppercase;letter-spacing:.04em;white-space:nowrap}
-.confidence-track{width:60px;height:2px;background:var(--surface-3);border-radius:1px;overflow:hidden}
-.confidence-fill{height:100%;border-radius:1px;transition:width .5s,background .5s;width:0%}
-.confidence-val{font-size:.68rem;font-weight:600;min-width:16px;transition:color .3s}
-
-.hint-banner{background:var(--amber-dim);border:1px solid rgba(251,191,36,.08);border-radius:var(--radius-sm);padding:10px 14px;font-size:.78rem;color:var(--amber);display:none;margin-bottom:12px;align-items:center;gap:8px}
-.hint-banner.vis{display:flex}
-
-/* ================================================================
-   SCREEN 4 — THANK YOU
-   ================================================================ */
-.done-wrap{text-align:center;padding:80px 20px 60px}
-.done-icon{width:48px;height:48px;margin:0 auto 24px}
-.done-wrap h1{font-size:1.3rem;font-weight:600;letter-spacing:-.02em;margin-bottom:12px}
-.done-wrap p{color:var(--text-3);font-size:.85rem;max-width:400px;margin:0 auto;line-height:1.7}
-.done-wrap .sub{color:var(--text-4);font-size:.78rem;margin-top:24px}
-
-/* Utility */
-.hidden{display:none!important}
-.mt-2{margin-top:8px}
-.mt-4{margin-top:16px}
-.text-center{text-align:center}
-
-@media(max-width:480px){
-  .hero h1{font-size:1.4rem}
-  .q-card,.profile-panel,.iv-intro{padding:16px}
-  .iv-bar{padding:8px 12px}
-  .nav{padding:0 16px}
-}
-</style>
+<link rel="stylesheet" href="/static/app.css">
 </head>
 <body>
 
 <!-- NAV -->
 <nav class="nav">
   <a href="/" class="nav-brand">
-    <span class="nav-logo"><svg width="24" height="24" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".6"><path d="M16 4l10 6v12l-10 6L6 22V10z"/><path d="M16 10l6 3.5v7L16 24l-6-3.5v-7z" opacity=".4"/><line x1="16" y1="4" x2="16" y2="10" opacity=".3"/><line x1="26" y1="10" x2="22" y2="13.5" opacity=".3"/><line x1="6" y1="10" x2="10" y2="13.5" opacity=".3"/></svg></span>
+    <span class="nav-logo"><svg width="24" height="24" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M16 4l10 6v12l-10 6L6 22V10z" opacity=".75"/><path d="M16 10l6 3.5v7L16 24l-6-3.5v-7z" opacity=".5"/><line x1="16" y1="4" x2="16" y2="10" opacity=".35"/><line x1="26" y1="10" x2="22" y2="13.5" opacity=".35"/><line x1="6" y1="10" x2="10" y2="13.5" opacity=".35"/></svg></span>
     <span class="nav-name">Interviewer Agent</span>
   </a>
 </nav>
@@ -266,12 +35,11 @@ textarea.input{resize:vertical;min-height:160px;line-height:1.7}
      ============================================================ -->
 <div class="screen active" id="screen-welcome">
   <div class="hero">
-    <!-- Geometric hero illustration -->
     <svg class="hero-geo geo" width="280" height="200" viewBox="0 0 280 200">
       <path class="geo-line" d="M140 20l80 46v72l-80 46-80-46V66z"/>
       <path class="geo-line" d="M140 40l60 35v54l-60 35-60-35V75z"/>
-      <path class="geo-line" d="M140 60l40 23v36l-40 23-40-23V83z"/>
-      <ellipse class="geo-line" cx="140" cy="100" rx="18" ry="10"/>
+      <path class="geo-line-accent" d="M140 60l40 23v36l-40 23-40-23V83z"/>
+      <ellipse class="geo-line-accent" cx="140" cy="100" rx="18" ry="10"/>
       <line class="geo-line" x1="140" y1="20" x2="140" y2="60" opacity=".4"/>
       <line class="geo-line" x1="220" y1="66" x2="200" y2="75" opacity=".4"/>
       <line class="geo-line" x1="60" y1="66" x2="80" y2="75" opacity=".4"/>
@@ -304,9 +72,9 @@ textarea.input{resize:vertical;min-height:160px;line-height:1.7}
       <p class="card-sub">Enrich profile with repo data</p>
       <div class="github-field mt-4">
         <label>GitHub username</label>
-        <input class="input" type="text" id="github-input" placeholder="e.g. torvalds">
+        <input class="input" type="text" id="github-input" placeholder="e.g. torvalds" autocomplete="off" spellcheck="false">
       </div>
-      <p style="font-size:.68rem;color:var(--text-4);margin-top:6px">Leave blank to use resume only</p>
+      <p class="github-hint">Leave blank to use resume only</p>
     </div>
   </div>
 
@@ -388,6 +156,17 @@ textarea.input{resize:vertical;min-height:160px;line-height:1.7}
     <div class="iv-intro-btn"><button class="btn btn-primary btn-lg" id="iv-begin-questions">Start Interview</button></div>
   </div>
 
+  <!-- Skeleton shown while next question is being fetched/rendered -->
+  <div class="card skeleton hidden" id="q-skeleton" aria-hidden="true">
+    <div class="skeleton-meta">
+      <span class="skeleton-chip"></span>
+      <span class="skeleton-chip wide"></span>
+    </div>
+    <div class="skeleton-line w-90"></div>
+    <div class="skeleton-line w-90"></div>
+    <div class="skeleton-line w-60"></div>
+  </div>
+
   <!-- Question -->
   <div class="card q-card hidden" id="question-card">
     <div class="q-meta">
@@ -426,7 +205,7 @@ textarea.input{resize:vertical;min-height:160px;line-height:1.7}
         <div class="ans-btns">
           <button class="btn btn-sm btn-secondary" id="hint-btn">Hint</button>
           <button class="btn btn-sm btn-danger" id="skip-btn">Skip</button>
-          <button class="btn btn-sm btn-primary" id="submit-answer-btn">Submit</button>
+          <button class="btn btn-sm btn-primary" id="submit-answer-btn">Submit<span class="btn-kbd" id="submit-kbd">Ctrl+Enter</span></button>
         </div>
       </div>
     </div>
@@ -439,30 +218,26 @@ textarea.input{resize:vertical;min-height:160px;line-height:1.7}
 </div>
 
 <!-- ============================================================
-     SCREEN 4 — THANK YOU
+     SCREEN 4 — COMPLETE
      ============================================================ -->
 <div class="screen" id="screen-report">
   <div class="done-wrap">
-    <!-- Geometric completion illustration -->
-    <svg class="done-icon" width="48" height="48" viewBox="0 0 48 48" fill="none">
+    <svg class="done-icon" width="56" height="56" viewBox="0 0 48 48" fill="none">
       <path d="M24 6l16 9.5v19L24 44 8 34.5v-19z" stroke="rgba(74,222,128,.3)" stroke-width="1"/>
-      <path d="M24 14l10 6v12L24 38 14 32V20z" stroke="rgba(74,222,128,.5)" stroke-width="1"/>
-      <path d="M18 25l4 4 8-8" stroke="rgba(74,222,128,.8)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M24 14l10 6v12L24 38 14 32V20z" stroke="rgba(74,222,128,.55)" stroke-width="1"/>
+      <path d="M18 25l4 4 8-8" stroke="rgba(74,222,128,.9)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
     </svg>
     <h1>Interview Complete</h1>
     <p>Your responses have been recorded and will be reviewed. You will be contacted with next steps.</p>
     <p class="sub">Thank you for your time.</p>
   </div>
-  <div style="text-align:center;padding:20px 0">
+  <div class="text-center" style="padding:20px 0">
     <button class="btn btn-secondary btn-lg" id="new-interview-btn">Start Another Interview</button>
   </div>
 </div>
 
 </div><!-- /shell -->
 
-<!-- ============================================================
-     JAVASCRIPT — all functionality preserved
-     ============================================================ -->
 <script>
 // ---------- State ----------
 const S = {
@@ -476,6 +251,7 @@ const S = {
 const $=id=>document.getElementById(id);
 const show=el=>{(typeof el==='string'?$(el):el).classList.remove('hidden')};
 const hide=el=>{(typeof el==='string'?$(el):el).classList.add('hidden')};
+const isMac=/mac|iphone|ipad|ipod/i.test(navigator.platform);
 
 function showScreen(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
@@ -508,6 +284,9 @@ async function api(url,body,isForm=false){
   return data;
 }
 
+// Localize the keyboard hint on the Submit button.
+(function(){const el=$('submit-kbd');if(el)el.textContent=isMac?'Cmd+Enter':'Ctrl+Enter';})();
+
 // ---------- SCREEN 1: Welcome ----------
 const dropZone=$('drop-zone'), fileInput=$('file-input'), beginBtn=$('begin-btn');
 
@@ -525,8 +304,9 @@ function handleFile(file){
   dropZone.classList.add('done');
   dropZone.innerHTML=`
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
-    <p class="chosen-file">${file.name}</p>
-    <p style="font-size:.68rem;color:var(--text-4);margin-top:4px">Click to change</p>`;
+    <p class="chosen-file"></p>
+    <p class="exts">Click to change</p>`;
+  dropZone.querySelector('.chosen-file').textContent=file.name;
   beginBtn.disabled=false;
 }
 
@@ -557,21 +337,31 @@ function populateProfile(p){
   const yoe=p.years_of_experience||0;$('pf-experience').textContent=yoe>=1?Math.round(yoe)+' years':Math.round(yoe*12)+' months';
   const tags=$('project-tags');tags.innerHTML='';
   (p.projects||[]).slice(0,3).forEach(pr=>{const s=document.createElement('span');s.className='chip';s.textContent=pr.name||pr.description||'Project';tags.appendChild(s)});
-  if(!p.projects||!p.projects.length)tags.innerHTML='<span class="chip">No projects detected</span>';
+  if(!p.projects||!p.projects.length){
+    const s=document.createElement('span');s.className='chip';s.textContent='No projects detected';tags.appendChild(s);
+  }
   buildPersonaCards();
 }
 
+// Real SVG marks for each persona — replace the old 2-letter monograms.
+const PERSONA_ICONS={
+  'pi-tech':`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 7 4 12 9 17"/><polyline points="15 7 20 12 15 17"/></svg>`,
+  'pi-mgr':`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="2.2"/><circle cx="6" cy="18" r="2.2"/><circle cx="18" cy="18" r="2.2"/><path d="M12 7.2v4.3M12 11.5L6 15.8M12 11.5l6 4.3"/></svg>`,
+  'pi-hr':`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8.5" r="3.2"/><path d="M5 20c1.4-3.3 4.1-5 7-5s5.6 1.7 7 5"/></svg>`,
+  'pi-exec':`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="7" height="7" rx="1.2"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.2"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.2"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.2"/></svg>`,
+};
+
 function buildPersonaCards(){
   const personas=[
-    {id:'technical_expert',icon:'TE',cls:'pi-tech',name:'Technical Expert',desc:'Deep domain knowledge, probes your expertise hard, expects precise and detailed answers'},
-    {id:'senior_manager',icon:'SM',cls:'pi-mgr',name:'Senior Manager',desc:'Focuses on leadership, ownership, impact and results'},
-    {id:'hr',icon:'HR',cls:'pi-hr',name:'HR Screener',desc:'Friendly but structured. Focuses on soft skills, communication, and culture fit'},
-    {id:'executive_panel',icon:'EP',cls:'pi-exec',name:'Executive Panel',desc:'High pressure, multi-angle, covers everything'},
+    {id:'technical_expert',cls:'pi-tech',name:'Technical Expert',desc:'Deep domain knowledge, probes your expertise hard, expects precise and detailed answers'},
+    {id:'senior_manager',cls:'pi-mgr',name:'Senior Manager',desc:'Focuses on leadership, ownership, impact and results'},
+    {id:'hr',cls:'pi-hr',name:'HR Screener',desc:'Friendly but structured. Focuses on soft skills, communication, and culture fit'},
+    {id:'executive_panel',cls:'pi-exec',name:'Executive Panel',desc:'High pressure, multi-angle, covers everything'},
   ];
   const grid=$('persona-grid');grid.innerHTML='';
   personas.forEach(p=>{
     const d=document.createElement('div');d.className='card persona';d.dataset.id=p.id;
-    d.innerHTML=`<div class="persona-icon ${p.cls}">${p.icon}</div><h4>${p.name}</h4><p>${p.desc}</p>`;
+    d.innerHTML=`<div class="persona-icon ${p.cls}">${PERSONA_ICONS[p.cls]||''}</div><h4>${p.name}</h4><p>${p.desc}</p>`;
     d.addEventListener('click',()=>{grid.querySelectorAll('.persona').forEach(c=>c.classList.remove('picked'));d.classList.add('picked');S.selectedPersona=p.id;$('start-btn').disabled=false});
     grid.appendChild(d);
   });
@@ -606,7 +396,6 @@ $('start-btn').addEventListener('click',async()=>{
     $('iv-name').textContent=S.profile.name||'Candidate';
     $('iv-persona').textContent=r.persona_name||S.selectedPersona;
     showScreen('screen-interview');
-    // Show intro as pure welcome — hide bar, timer, progress
     hide('iv-bar-wrap');hide('iv-progress-wrap');
     $('iv-intro-text').textContent=S.introText;show('iv-intro-card');
   }catch(e){show('start-btn')}finally{hide('profile-loading')}
@@ -671,6 +460,10 @@ function autoSubmitTimeout(){
 $('answer-input').addEventListener('input',()=>{
   $('char-count').textContent=$('answer-input').value.length;
   LiveFeedback.onInput($('answer-input').value);
+});
+// Cmd+Enter / Ctrl+Enter submits from the textarea.
+$('answer-input').addEventListener('keydown',e=>{
+  if((e.metaKey||e.ctrlKey)&&e.key==='Enter'){e.preventDefault();submitAnswer(false);}
 });
 $('hint-btn').addEventListener('click',()=>{$('hint-warning').classList.add('vis')});
 
@@ -785,7 +578,8 @@ async function doSubmitAnswer(skipped,fromTimeout){
   } else {
     $('iv-loading-msg').textContent='Evaluating...';
   }
-  hide('question-card');hide('answer-section');show('iv-loading');
+  // Replace the question card with the skeleton while the next one loads.
+  hide('question-card');hide('answer-section');show('q-skeleton');show('iv-loading');
   try{
     const r=await api('/answer',{session_id:S.sessionId,session_token:S.sessionToken,question_index:S.questionIndex,question_id:S.currentQuestion.id,answer:actualSkipped?'':answer,time_seconds:S.timerSeconds,skipped:actualSkipped,used_hint:S.hintUsed,is_followup:!!S.currentQuestion.is_followup,followup_question_text:S.currentQuestion.is_followup?S.currentQuestion.question:'',timing_status:fromTimeout?'timeout':S.timingStatus});
     if(r.done){
@@ -796,12 +590,12 @@ async function doSubmitAnswer(skipped,fromTimeout){
     }else if(r.followup&&r.followup.question){
       const fuLabel=r.followup.action==='clarify'?'Follow-up':'Digging deeper';
       S.currentQuestion={id:S.currentQuestion.id,category:S.currentQuestion.category,question:r.followup.question,context:fuLabel,difficulty:S.currentQuestion.difficulty,is_followup:true,index:S.currentQuestion.index};
-      hide('iv-loading');showQuestion(S.currentQuestion);show('question-card');show('answer-section');
+      hide('iv-loading');hide('q-skeleton');showQuestion(S.currentQuestion);show('question-card');show('answer-section');
     }else{
       S.currentQuestion=r.next_question;S.questionIndex=r.next_question.index;
-      hide('iv-loading');showQuestion(S.currentQuestion);show('question-card');show('answer-section');
+      hide('iv-loading');hide('q-skeleton');showQuestion(S.currentQuestion);show('question-card');show('answer-section');
     }
-  }catch(e){stopCountdown();hide('iv-loading');show('question-card');show('answer-section');showToast(e.message||'Failed to submit answer. Please try again.')}
+  }catch(e){stopCountdown();hide('iv-loading');hide('q-skeleton');show('question-card');show('answer-section');showToast(e.message||'Failed to submit answer. Please try again.')}
   finally{S.submitting=false}
 }
 
