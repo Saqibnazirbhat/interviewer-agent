@@ -14,7 +14,7 @@ Most mock interview tools ask generic textbook questions. Interviewer Agent read
 
 1. **Analyzes the candidate** — GitHub repos, languages, commit patterns, or parsed resume (PDF/DOCX/TXT)
 2. **Generates 15 personalized questions** — experience, project, skill, situational, and curveball categories, all grounded in the candidate's real work
-3. **Runs an adaptive browser-based interview** — 100-second countdown per question, follow-up probes, real-time feedback signals, voice input support
+3. **Runs an adaptive browser-based interview** — 100-second countdown per question, follow-up probes, real-time feedback signals
 4. **Scores every answer** on four dimensions: accuracy, depth, communication, and ownership (1-10 each)
 5. **Detects suspicious patterns** — flags impossibly fast answers, generic responses, and claims that contradict the candidate's profile
 6. **Generates a full hiring report** — Markdown and PDF with scores, strengths, weaknesses, red flags, and a hire/no-hire recommendation
@@ -63,7 +63,10 @@ pip install -r requirements.txt
 
 # Configure environment
 cp .env.example .env
-# Edit .env and add your NVIDIA_API_KEY, GITHUB_TOKEN, and OWNER_PASSWORD
+# Edit .env and add your NVIDIA_API_KEY, GITHUB_TOKEN, OWNER_PASSWORD,
+# and DATA_ENCRYPTION_KEY (required — encrypts candidate data at rest).
+# Generate a key with:
+#   python -c "import secrets; print(secrets.token_urlsafe(32))"
 ```
 
 ### Run
@@ -92,7 +95,6 @@ The browser UI launches at `http://localhost:8000` with:
 - **Adaptive difficulty** — questions get harder or easier based on performance
 - **Follow-up probes** — AI asks clarifying or deeper questions when warranted
 - **Real-time feedback** — listening indicators, micro-acknowledgments, confidence meter
-- **Voice input** — speak answers via Web Speech API
 - **100-second countdown** — auto-submits when time runs out
 - **Owner dashboard** — view reports, replay interviews, compare candidates, switch LLM models
 
