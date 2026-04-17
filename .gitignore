@@ -22,6 +22,8 @@ data/results.db
 data/temp_audio.wav
 data/research.md
 data/*.json
+data/*.json.enc
+data/.encryption_key
 !data/.gitkeep
 data/model_config.json
 

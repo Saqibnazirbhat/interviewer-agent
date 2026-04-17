@@ -125,11 +125,17 @@ Raw JSON only. No markdown."""
         counts = {"flagged": 0, "suspicious": 0, "clean": 0, "skipped": 0}
         all_flags = []
 
-        for r in responses:
+        for idx, r in enumerate(responses):
             verdict = r.get("integrity", {}).get("verdict", "clean")
             counts[verdict] = counts.get(verdict, 0) + 1
-            for flag in r.get("integrity", {}).get("flags", []):
-                all_flags.append({"question_id": r["question_id"], "flag": flag})
+            q_num = idx + 1  # 1-based display number
+            flags_for_q = r.get("integrity", {}).get("flags", [])
+            if flags_for_q:
+                # Group all flags for this question into a single entry
+                all_flags.append({
+                    "question_id": q_num,
+                    "flag": "; ".join(flags_for_q),
+                })
 
         answerable = total - counts["skipped"]
         integrity_score = round(counts["clean"] / max(answerable, 1) * 10, 1)

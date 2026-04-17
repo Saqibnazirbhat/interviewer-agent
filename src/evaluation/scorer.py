@@ -138,10 +138,20 @@ Raw JSON only. No markdown fences."""
             cat: round(sum(vals) / len(vals), 1) for cat, vals in by_category.items()
         }
 
-        overall = round(sum(by_dimension.values()) / len(by_dimension), 1)
+        # Raw quality score from answered questions only
+        raw_quality = sum(by_dimension.values()) / len(by_dimension)
+
+        # Penalize for low participation — skipping most questions should
+        # significantly reduce the overall score.  participation_rate is
+        # the fraction of questions actually answered.
+        total = len(scored_responses)
+        participation_rate = len(answered) / total if total else 0
+        overall = round(raw_quality * participation_rate, 1)
 
         return {
             "overall": overall,
+            "raw_quality": round(raw_quality, 1),
+            "participation_rate": round(participation_rate, 2),
             "by_dimension": by_dimension,
             "by_category": category_avgs,
             "answered_count": len(answered),

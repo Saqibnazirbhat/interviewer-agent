@@ -99,6 +99,9 @@ def _check_rate_limit(client_ip: str):
 OWNER_PASSWORD = os.getenv("OWNER_PASSWORD", "")
 OWNER_COOKIE_NAME = "owner_session"
 OWNER_SESSION_TTL = 24 * 60 * 60  # 24 hours
+# Set COOKIE_SECURE=false ONLY for local http://localhost development.
+# Default True so cookies are only sent over HTTPS in production.
+COOKIE_SECURE = os.getenv("COOKIE_SECURE", "true").strip().lower() not in ("false", "0", "no")
 
 # In-memory store for valid owner session tokens: token -> expiry timestamp
 _owner_sessions: dict[str, float] = {}
@@ -131,6 +134,56 @@ def _require_owner(owner_session: str | None):
     """Raise 401 if the owner session is invalid."""
     if not _verify_owner_session(owner_session):
         raise HTTPException(401, "Owner authentication required.")
+
+
+# ---------------------------------------------------------------------------
+# Session token binding — prevents IDOR / session hijacking
+# ---------------------------------------------------------------------------
+def _create_session_token() -> tuple[str, str]:
+    """Create a session auth token. Returns (raw_token, token_hash)."""
+    raw = secrets.token_urlsafe(32)
+    token_hash = hashlib.sha256(raw.encode()).hexdigest()
+    return raw, token_hash
+
+
+def _verify_session_token(session: dict, token: str) -> bool:
+    """Verify a session token against the stored hash."""
+    stored_hash = session.get("_token_hash", "")
+    if not stored_hash or not token:
+        return False
+    provided_hash = hashlib.sha256(token.encode()).hexdigest()
+    return hmac.compare_digest(provided_hash, stored_hash)
+
+
+def _require_session_token(session: dict, token: str):
+    """Raise 403 if the session token is invalid."""
+    if not _verify_session_token(session, token):
+        raise HTTPException(403, "Invalid session token.")
+
+
+# ---------------------------------------------------------------------------
+# Login rate limiting — dedicated throttle for /owner/login
+# ---------------------------------------------------------------------------
+_login_attempts: dict[str, list[float]] = defaultdict(list)
+LOGIN_MAX_ATTEMPTS = 5      # max failures per window
+LOGIN_WINDOW = 300           # 5-minute window
+LOGIN_LOCKOUT = 900          # 15-minute lockout after exceeding limit
+
+
+def _check_login_rate(client_ip: str):
+    """Raise 429 if the IP has exceeded login attempt limits."""
+    now = time.time()
+    attempts = _login_attempts[client_ip]
+    # Prune old entries
+    _login_attempts[client_ip] = [t for t in attempts if now - t < LOGIN_LOCKOUT]
+    recent = [t for t in _login_attempts[client_ip] if now - t < LOGIN_WINDOW]
+    if len(recent) >= LOGIN_MAX_ATTEMPTS:
+        raise HTTPException(429, "Too many login attempts. Try again later.")
+
+
+def _record_login_failure(client_ip: str):
+    """Record a failed login attempt."""
+    _login_attempts[client_ip].append(time.time())
 
 
 # ---------------------------------------------------------------------------
@@ -186,11 +239,15 @@ app.add_middleware(
 )
 
 
+MAX_JSON_BODY = 256 * 1024  # 256 KB — JSON endpoints only; /upload handles its own limit
+
+
 @app.middleware("http")
-async def rate_limit_middleware(request: Request, call_next):
-    """Apply rate limiting and request logging."""
+async def security_middleware(request: Request, call_next):
+    """Rate limit, enforce body-size caps, log requests, add security headers."""
     client_ip = request.client.host if request.client else "unknown"
-    # Skip rate limiting for static files
+
+    # Rate limiting (skip static)
     if not request.url.path.startswith("/static"):
         try:
             _check_rate_limit(client_ip)
@@ -198,9 +255,38 @@ async def rate_limit_middleware(request: Request, call_next):
             logger.warning("Rate limited %s on %s", client_ip, request.url.path)
             return JSONResponse({"detail": exc.detail}, status_code=exc.status_code)
 
+    # Reject oversized JSON bodies early (upload endpoint validates separately)
+    if request.method in ("POST", "PUT", "PATCH") and request.url.path != "/upload":
+        cl = request.headers.get("content-length")
+        if cl and cl.isdigit() and int(cl) > MAX_JSON_BODY:
+            return JSONResponse({"detail": "Request body too large."}, status_code=413)
+
     start = time.time()
-    response = await call_next(request)
+    try:
+        response = await call_next(request)
+    except Exception:
+        # Never leak stack traces to the client.
+        logger.exception("Unhandled error on %s %s", request.method, request.url.path)
+        response = JSONResponse({"detail": "Internal server error."}, status_code=500)
     elapsed = time.time() - start
+
+    # Security headers — defense in depth
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault("Referrer-Policy", "no-referrer")
+    response.headers.setdefault("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
+    # Allow same-origin resources + CDN for dashboard charts; disallow inline scripts except where needed by our static pages
+    response.headers.setdefault(
+        "Content-Security-Policy",
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+        "font-src 'self' https://fonts.gstatic.com data:; "
+        "img-src 'self' data:; "
+        "connect-src 'self'; "
+        "frame-ancestors 'none'; "
+        "base-uri 'self'"
+    )
 
     # Log non-static requests
     if not request.url.path.startswith("/static"):
@@ -228,9 +314,8 @@ async def root():
 
 @app.get("/health")
 async def health():
-    """Simple health check."""
-    active = await store.count()
-    return {"status": "ok", "service": "interviewer-agent", "active_sessions": active}
+    """Simple health check — no internal details exposed."""
+    return {"status": "ok", "service": "interviewer-agent"}
 
 
 @app.post("/upload")
@@ -249,30 +334,39 @@ async def upload_resume(file: UploadFile = File(...)):
         if len(content) > MAX_UPLOAD_SIZE:
             raise HTTPException(400, f"File too large ({len(content) // 1024 // 1024}MB). Maximum is 10MB.")
 
-        # Save uploaded file
-        save_path = UPLOAD_DIR / f"{uuid.uuid4().hex}_{filename}"
+        # Sanitize filename to prevent path traversal via crafted upload name
+        import re as _re
+        safe_filename = _re.sub(r"[^a-zA-Z0-9_.\-]", "_", Path(filename).name)[:100] or "resume"
+        save_path = UPLOAD_DIR / f"{uuid.uuid4().hex}_{safe_filename}"
         save_path.write_bytes(content)
 
         # Parse resume (blocking I/O → run in thread pool)
         from src.ingestion.resume_parser import ResumeParser
         parser = ResumeParser()
-        profile = await run_sync(parser.parse_file, str(save_path))
+        try:
+            profile = await run_sync(parser.parse_file, str(save_path))
+        finally:
+            # Remove plaintext resume after parsing — data lives in the encrypted session store
+            save_path.unlink(missing_ok=True)
 
         # Remove large fields from response
         response_profile = {k: v for k, v in profile.items() if k != "resume_text"}
         response_profile["_resume_text_length"] = len(profile.get("resume_text", ""))
 
-        # Store full profile in session
+        # Store full profile in session with token hash for auth binding
         session_id = uuid.uuid4().hex
-        await store.put(session_id, {"profile": profile, "state": "profile_ready"})
+        raw_token, token_hash = _create_session_token()
+        await store.put(session_id, {"profile": profile, "state": "profile_ready", "_token_hash": token_hash})
         response_profile["session_id"] = session_id
+        response_profile["session_token"] = raw_token
 
         return JSONResponse(response_profile)
 
     except HTTPException:
         raise
     except Exception as exc:
-        raise HTTPException(500, f"Failed to process resume: {str(exc)}")
+        logger.error("Resume upload failed: %s", exc, exc_info=True)
+        raise HTTPException(500, "Failed to process resume. Please try again.")
 
 
 @app.post("/github")
@@ -285,10 +379,12 @@ async def github_profile(data: GitHubRequest):
         profile["source"] = "github"
 
         session_id = uuid.uuid4().hex
-        await store.put(session_id, {"profile": profile, "state": "profile_ready"})
+        raw_token, token_hash = _create_session_token()
+        await store.put(session_id, {"profile": profile, "state": "profile_ready", "_token_hash": token_hash})
 
         response = dict(profile)
         response["session_id"] = session_id
+        response["session_token"] = raw_token
         # Map GitHub profile fields to match the UI expectations
         response.setdefault("detected_role", "Software Engineer")
         response.setdefault("industry", "Technology")
@@ -321,7 +417,8 @@ async def github_profile(data: GitHubRequest):
     except (EnvironmentError, ValueError) as exc:
         raise HTTPException(400, str(exc))
     except Exception as exc:
-        raise HTTPException(500, f"Failed to fetch GitHub profile: {str(exc)}")
+        logger.error("GitHub fetch failed: %s", exc, exc_info=True)
+        raise HTTPException(500, "Failed to fetch GitHub profile. Please try again.")
 
 
 @app.post("/enrich")
@@ -331,6 +428,7 @@ async def enrich_with_github(data: EnrichGitHubRequest):
         session = await store.get(data.session_id)
         if session is None:
             raise HTTPException(400, "Invalid or expired session.")
+        _require_session_token(session, data.session_token)
 
         from src.ingestion.github_fetcher import GitHubFetcher
         fetcher = GitHubFetcher()
@@ -375,7 +473,8 @@ async def enrich_with_github(data: EnrichGitHubRequest):
     except (EnvironmentError, ValueError) as exc:
         raise HTTPException(400, str(exc))
     except Exception as exc:
-        raise HTTPException(500, f"Failed to enrich with GitHub: {str(exc)}")
+        logger.error("GitHub enrich failed: %s", exc, exc_info=True)
+        raise HTTPException(500, "Failed to enrich with GitHub data. Please try again.")
 
 
 @app.post("/start")
@@ -385,6 +484,7 @@ async def start_interview(data: StartInterviewRequest):
         session = await store.get(data.session_id)
         if session is None:
             raise HTTPException(400, "Invalid or expired session. Please start over.")
+        _require_session_token(session, data.session_token)
 
         profile = session["profile"]
 
@@ -443,7 +543,8 @@ async def start_interview(data: StartInterviewRequest):
     except HTTPException:
         raise
     except Exception as exc:
-        raise HTTPException(500, f"Failed to start interview: {str(exc)}")
+        logger.error("Start interview failed: %s", exc, exc_info=True)
+        raise HTTPException(500, "Failed to start interview. Please try again.")
 
 
 @app.post("/answer")
@@ -453,6 +554,7 @@ async def submit_answer(data: SubmitAnswerRequest):
         session = await store.get(data.session_id)
         if session is None:
             raise HTTPException(400, "Invalid or expired session.")
+        _require_session_token(session, data.session_token)
 
         if session["state"] != "interviewing":
             raise HTTPException(400, "Interview not in progress.")
@@ -648,7 +750,8 @@ async def submit_answer(data: SubmitAnswerRequest):
     except HTTPException:
         raise
     except Exception as exc:
-        raise HTTPException(500, f"Failed to process answer: {str(exc)}")
+        logger.error("Answer processing failed: %s", exc, exc_info=True)
+        raise HTTPException(500, "Failed to process answer. Please try again.")
 
 
 @app.post("/complete")
@@ -658,13 +761,39 @@ async def complete_interview(data: ReportRequest):
         session = await store.get(data.session_id)
         if session is None:
             raise HTTPException(400, "Invalid or expired session.")
+        _require_session_token(session, data.session_token)
+
+        # Prevent repeated finalization (cost-amplification guard)
+        if session.get("_results_saved"):
+            return JSONResponse({"status": "completed", "message": "Interview was already completed."})
+        # Allow both "interviewing" (normal) and "completed" (adaptive engine ended early)
+        if session.get("state") not in ("interviewing", "completed"):
+            raise HTTPException(400, "Interview not in a completable state.")
 
         responses = session["responses"]
         profile = session["profile"]
         persona = session["persona"]
+        questions = session.get("questions", [])
 
         if not responses:
             raise HTTPException(400, "No responses to evaluate.")
+
+        # Mark unanswered questions as skipped so scoring reflects total question count
+        answered_ids = {r.get("question_id") for r in responses}
+        for q in questions:
+            if q.get("id") not in answered_ids:
+                responses.append({
+                    "question_id": q["id"],
+                    "category": q.get("category", "general"),
+                    "question": q.get("question", ""),
+                    "answer": "",
+                    "skipped": True,
+                    "time_seconds": 0,
+                    "timing_status": "early",
+                    "context": q.get("context", ""),
+                    "difficulty": q.get("difficulty", "medium"),
+                    "ideal_signals": q.get("ideal_signals", []),
+                })
 
         # Run scoring and report generation in background (owner will see it later)
         from src.evaluation.scorer import AnswerScorer
@@ -681,6 +810,15 @@ async def complete_interview(data: ReportRequest):
             if "integrity" not in r:
                 r["integrity"] = {"verdict": "clean", "flags": []}
         integrity_summary = detector.summarize_flags(responses)
+
+        # Compute authenticity fingerprint
+        fingerprint_data = {}
+        try:
+            from src.evaluation.fingerprint import compute_authenticity
+            fp = compute_authenticity(responses)
+            fingerprint_data = fp.to_dict()
+        except Exception as exc:
+            logger.warning("Authenticity fingerprint failed in /complete: %s", exc)
 
         # Generate report files
         try:
@@ -721,11 +859,14 @@ async def complete_interview(data: ReportRequest):
                 "by_category": score_summary.get("by_category", {}),
                 "skills_demonstrated": cm_summary.get("demonstrated_skills", []),
                 "contradiction_count": cm_summary.get("contradiction_count", 0),
+                "red_flags": integrity_summary.get("all_flags", []),
+                "authenticity": fingerprint_data,
             })
         except Exception as exc:
             logger.warning("Failed to save result: %s", exc)
 
         session["state"] = "completed"
+        session["_results_saved"] = True
         await store.put(data.session_id, session)
 
         # Clean up live cache for this session (AdaptiveEngine, FollowUpGenerator)
@@ -738,7 +879,8 @@ async def complete_interview(data: ReportRequest):
     except HTTPException:
         raise
     except Exception as exc:
-        raise HTTPException(500, f"Failed to complete interview: {str(exc)}")
+        logger.error("Interview completion failed: %s", exc, exc_info=True)
+        raise HTTPException(500, "Failed to complete interview. Please try again.")
 
 
 # ---------------------------------------------------------------------------
@@ -755,20 +897,25 @@ async def owner_page(owner_session: str | None = Cookie(default=None)):
 
 
 @app.post("/owner/login")
-async def owner_login(data: OwnerLoginRequest, response: Response):
+async def owner_login(data: OwnerLoginRequest, request: Request, response: Response):
     """Validate password and set session cookie."""
+    client_ip = request.client.host if request.client else "unknown"
+    _check_login_rate(client_ip)
+
     if not OWNER_PASSWORD:
-        raise HTTPException(500, "OWNER_PASSWORD not configured in .env")
+        raise HTTPException(500, "Owner access is not configured.")
     if not hmac.compare_digest(data.password, OWNER_PASSWORD):
-        logger.warning("Failed owner login attempt")
+        _record_login_failure(client_ip)
+        logger.warning("Failed owner login attempt from %s", client_ip)
         raise HTTPException(401, "Incorrect password.")
     token = _create_owner_session()
-    logger.info("Owner logged in successfully")
+    logger.info("Owner logged in successfully from %s", client_ip)
     resp = JSONResponse({"status": "ok"})
     resp.set_cookie(
         key=OWNER_COOKIE_NAME,
         value=token,
         httponly=True,
+        secure=COOKIE_SECURE,
         samesite="strict",
         max_age=OWNER_SESSION_TTL,
         path="/",
@@ -825,9 +972,27 @@ async def generate_report(data: ReportRequest, owner_session: str | None = Cooki
         responses = session["responses"]
         profile = session["profile"]
         persona = session["persona"]
+        questions = session.get("questions", [])
 
         if not responses:
             raise HTTPException(400, "No responses to evaluate.")
+
+        # Mark unanswered questions as skipped so scoring reflects total question count
+        answered_ids = {r.get("question_id") for r in responses}
+        for q in questions:
+            if q.get("id") not in answered_ids:
+                responses.append({
+                    "question_id": q["id"],
+                    "category": q.get("category", "general"),
+                    "question": q.get("question", ""),
+                    "answer": "",
+                    "skipped": True,
+                    "time_seconds": 0,
+                    "timing_status": "early",
+                    "context": q.get("context", ""),
+                    "difficulty": q.get("difficulty", "medium"),
+                    "ideal_signals": q.get("ideal_signals", []),
+                })
 
         # Compute score summary
         from src.evaluation.scorer import AnswerScorer
@@ -865,10 +1030,11 @@ async def generate_report(data: ReportRequest, owner_session: str | None = Cooki
         reporter = ReportGenerator(persona)
         paths = await run_sync(reporter.generate, profile, responses, score_summary, integrity_summary)
 
-        # Read the markdown report for display
+        # Read and decrypt the markdown report for display
         md_content = ""
         try:
-            md_content = Path(paths["markdown"]).read_text(encoding="utf-8")
+            from src.web.session_store import decrypt_bytes
+            md_content = decrypt_bytes(Path(paths["markdown"]).read_bytes()).decode("utf-8")
         except Exception:
             pass
 
@@ -906,6 +1072,8 @@ async def generate_report(data: ReportRequest, owner_session: str | None = Cooki
                 "by_category": score_summary.get("by_category", {}),
                 "skills_demonstrated": cm_summary.get("demonstrated_skills", []),
                 "contradiction_count": cm_summary.get("contradiction_count", 0),
+                "red_flags": integrity_summary.get("all_flags", []),
+                "authenticity": fingerprint_data,
             })
         except Exception as exc:
             logger.warning("Failed to save result for dashboard: %s", exc)
@@ -928,7 +1096,8 @@ async def generate_report(data: ReportRequest, owner_session: str | None = Cooki
     except HTTPException:
         raise
     except Exception as exc:
-        raise HTTPException(500, f"Failed to generate report: {str(exc)}")
+        logger.error("Report generation failed: %s", exc, exc_info=True)
+        raise HTTPException(500, "Failed to generate report. Please try again.")
 
 
 @app.get("/replay/{session_id}")
@@ -1041,7 +1210,8 @@ async def replay_data(session_id: str, owner_session: str | None = Cookie(defaul
     except HTTPException:
         raise
     except Exception as exc:
-        raise HTTPException(500, f"Failed to build replay: {str(exc)}")
+        logger.error("Replay build failed: %s", exc, exc_info=True)
+        raise HTTPException(500, "Failed to build replay. Please try again.")
 
 
 def _generate_replay_commentary(llm, timeline: list, persona: dict, profile: dict) -> dict:
@@ -1118,7 +1288,8 @@ async def dashboard_data(owner_session: str | None = Cookie(default=None)):
         total = await results_store.count()
         return JSONResponse({"results": results, "total": total})
     except Exception as exc:
-        raise HTTPException(500, f"Failed to load dashboard: {str(exc)}")
+        logger.error("Dashboard load failed: %s", exc, exc_info=True)
+        raise HTTPException(500, "Failed to load dashboard.")
 
 
 @app.get("/api/compare/{session_a}/{session_b}")
@@ -1134,24 +1305,51 @@ async def compare_candidates(session_a: str, session_b: str, owner_session: str 
     except HTTPException:
         raise
     except Exception as exc:
-        raise HTTPException(500, f"Comparison failed: {str(exc)}")
+        logger.error("Comparison failed: %s", exc, exc_info=True)
+        raise HTTPException(500, "Comparison failed. Please try again.")
 
 
 @app.get("/download/{filename}")
 async def download_file(filename: str, owner_session: str | None = Cookie(default=None)):
-    """Download a generated report file. OWNER ONLY."""
+    """Download a generated report file. OWNER ONLY.
+
+    Reports are stored encrypted (.enc suffix). This endpoint decrypts
+    on the fly and streams the plaintext to the authenticated owner.
+    """
     _require_owner(owner_session)
     # Sanitize filename to prevent path traversal
     safe_name = Path(filename).name  # strips any directory components
     if safe_name != filename or ".." in filename:
         raise HTTPException(400, "Invalid filename.")
-    filepath = (Path("outputs") / safe_name).resolve()
+
+    # Reports are stored as .enc — resolve the encrypted path
+    enc_name = safe_name if safe_name.endswith(".enc") else safe_name + ".enc"
+    filepath = (Path("outputs") / enc_name).resolve()
     # Double-check resolved path is inside outputs/
     if not str(filepath).startswith(str(Path("outputs").resolve())):
         raise HTTPException(400, "Invalid filename.")
     if not filepath.exists():
         raise HTTPException(404, "File not found.")
-    return FileResponse(str(filepath), filename=safe_name)
+
+    # Decrypt and serve
+    from src.web.session_store import decrypt_bytes
+    decrypted = decrypt_bytes(filepath.read_bytes())
+    # Determine the original filename (strip .enc for the download name)
+    download_name = enc_name.removesuffix(".enc") if enc_name.endswith(".enc") else enc_name
+    # Determine content type
+    if download_name.endswith(".pdf"):
+        media_type = "application/pdf"
+    elif download_name.endswith(".md"):
+        media_type = "text/markdown"
+    else:
+        media_type = "application/octet-stream"
+
+    from fastapi.responses import Response as RawResponse
+    return RawResponse(
+        content=decrypted,
+        media_type=media_type,
+        headers={"Content-Disposition": f'attachment; filename="{download_name}"'},
+    )
 
 
 def _compute_recommendation(overall_pct: int, integrity: dict) -> dict:

@@ -2,6 +2,7 @@
 
 import json
 import os
+import re
 from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
@@ -196,9 +197,16 @@ class GitHubFetcher:
         }
 
     def _save_profile(self, username: str, profile: dict) -> Path:
-        """Persist the profile to data/ for later reference."""
+        """Persist the profile to data/ — encrypted at rest."""
+        from src.web.session_store import encrypt_bytes
+
         data_dir = Path("data")
         data_dir.mkdir(exist_ok=True)
-        filepath = data_dir / f"{username}.json"
-        filepath.write_text(json.dumps(profile, indent=2, default=str), encoding="utf-8")
+        # Sanitize username to prevent path traversal
+        safe_name = re.sub(r"[^a-zA-Z0-9_\-]", "_", username)[:80] or "candidate"
+        filepath = (data_dir / f"{safe_name}.json.enc").resolve()
+        if not str(filepath).startswith(str(data_dir.resolve())):
+            raise ValueError("Invalid username produced an unsafe file path.")
+        plaintext = json.dumps(profile, indent=2, default=str).encode("utf-8")
+        filepath.write_bytes(encrypt_bytes(plaintext))
         return filepath

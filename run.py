@@ -1,6 +1,5 @@
 """Launch script for the Interviewer Agent — checks deps, starts server, opens browser."""
 
-import subprocess
 import sys
 import time
 import webbrowser
@@ -24,8 +23,8 @@ PORT = 8000
 URL = f"http://{HOST}:{PORT}"
 
 
-def check_and_install_deps():
-    """Check all required packages are installed, install any missing ones."""
+def check_deps():
+    """Check all required packages are installed. Exit with instructions if any are missing."""
     missing = []
     for pkg in REQUIRED_PACKAGES:
         import_name = pkg.replace("-", "_").lower()
@@ -45,13 +44,12 @@ def check_and_install_deps():
             missing.append(pkg)
 
     if missing:
-        print(f"  Installing missing packages: {', '.join(missing)}")
-        subprocess.check_call(
-            [sys.executable, "-m", "pip", "install", *missing],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
-        print("  All packages installed.")
+        print(f"  Missing packages: {', '.join(missing)}")
+        print()
+        print("  Install all dependencies with:")
+        print(f"    {sys.executable} -m pip install -r requirements.txt")
+        print()
+        sys.exit(1)
     else:
         print("  All dependencies are installed.")
 
@@ -84,7 +82,7 @@ def main():
     print()
 
     print("  Checking dependencies...")
-    check_and_install_deps()
+    check_deps()
     print()
 
     print("  Verifying AI connection...")

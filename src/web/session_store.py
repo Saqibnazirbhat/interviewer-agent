@@ -2,10 +2,16 @@
 
 Sessions survive server restarts. Expired sessions (>24h) are cleaned
 up automatically on each read/write cycle.
+
+If DATA_ENCRYPTION_KEY is set in the environment, session data is
+encrypted at rest using Fernet symmetric encryption.
 """
 
+import base64
+import hashlib
 import json
 import logging
+import os
 import time
 from pathlib import Path
 
@@ -15,6 +21,49 @@ logger = logging.getLogger("interviewer.sessions")
 
 DB_PATH = Path("data") / "sessions.db"
 TTL_SECONDS = 24 * 60 * 60  # 24 hours
+
+# ---------------------------------------------------------------------------
+# Encryption at rest — mandatory.
+# DATA_ENCRYPTION_KEY must be set in .env or the environment.
+# The key must NOT be stored alongside the data it protects.
+# ---------------------------------------------------------------------------
+from cryptography.fernet import Fernet
+
+_ENCRYPTION_KEY = os.getenv("DATA_ENCRYPTION_KEY", "")
+if not _ENCRYPTION_KEY:
+    raise RuntimeError(
+        "DATA_ENCRYPTION_KEY is not set. "
+        "Add a strong secret to your .env file (e.g. DATA_ENCRYPTION_KEY=$(python -c \"import secrets; print(secrets.token_urlsafe(32))\")). "
+        "This key protects candidate data at rest and must NOT be stored inside the data/ directory."
+    )
+
+_key_bytes = hashlib.sha256(_ENCRYPTION_KEY.encode()).digest()
+_fernet = Fernet(base64.urlsafe_b64encode(_key_bytes))
+logger.info("Encryption at rest: ENABLED")
+
+
+def _encrypt(plaintext: str) -> str:
+    """Encrypt a string for storage."""
+    return _fernet.encrypt(plaintext.encode()).decode()
+
+
+def _decrypt(ciphertext: str) -> str:
+    """Decrypt a stored string."""
+    try:
+        return _fernet.decrypt(ciphertext.encode()).decode()
+    except Exception:
+        # Fallback: data might be unencrypted (pre-migration)
+        return ciphertext
+
+
+def encrypt_bytes(data: bytes) -> bytes:
+    """Encrypt raw bytes for file storage."""
+    return _fernet.encrypt(data)
+
+
+def decrypt_bytes(data: bytes) -> bytes:
+    """Decrypt raw bytes from file storage."""
+    return _fernet.decrypt(data)
 
 # Fields that are stored as-is (not JSON-serialized)
 _META_FIELDS = {"state"}
@@ -89,13 +138,13 @@ class SessionStore:
             row = await cursor.fetchone()
             if row is None:
                 return None
-            return _deserialize_session(row[0], session_id)
+            return _deserialize_session(_decrypt(row[0]), session_id)
 
     async def put(self, session_id: str, session: dict):
         """Create or update a session."""
         await self._ensure_db()
         now = time.time()
-        data = _serialize_session(session)
+        data = _encrypt(_serialize_session(session))
 
         # Cache live objects (non-serializable Python instances)
         live = _LIVE_CACHE.get(session_id, {})

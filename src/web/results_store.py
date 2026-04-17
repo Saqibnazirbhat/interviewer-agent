@@ -1,7 +1,9 @@
 """SQLite store for completed interview results — powers the comparison dashboard.
 
-Each row represents one completed interview with aggregated scores, enabling
-filtering, sorting, and side-by-side candidate comparison.
+All evaluation data is encrypted at rest as a single blob per row.
+Only session_id (primary key) and completed_at (for ordering) are stored
+in plaintext — no scores, recommendations, or candidate details are
+readable without the DATA_ENCRYPTION_KEY.
 """
 
 import json
@@ -11,13 +13,36 @@ from pathlib import Path
 
 import aiosqlite
 
+from src.web.session_store import _fernet
+
 logger = logging.getLogger("interviewer.results")
 
 DB_PATH = Path("data") / "results.db"
 
 
+def _encrypt_blob(data: dict) -> str:
+    """Serialize a dict to JSON and encrypt it."""
+    plaintext = json.dumps(data, default=str).encode("utf-8")
+    return _fernet.encrypt(plaintext).decode()
+
+
+def _decrypt_blob(ciphertext: str) -> dict:
+    """Decrypt and deserialize a stored blob back to a dict."""
+    try:
+        plaintext = _fernet.decrypt(ciphertext.encode()).decode()
+        return json.loads(plaintext)
+    except Exception:
+        # Fallback: might be unencrypted legacy data (plain JSON)
+        try:
+            return json.loads(ciphertext)
+        except Exception:
+            return {}
+
+
 class ResultsStore:
     """Async SQLite store for completed interview results."""
+
+    _SCHEMA_VERSION = 2  # v2 = encrypted blob
 
     def __init__(self, db_path: str | Path = DB_PATH):
         self.db_path = Path(db_path)
@@ -28,81 +53,101 @@ class ResultsStore:
         if self._initialized:
             return
         async with aiosqlite.connect(str(self.db_path)) as db:
-            await db.execute("""
-                CREATE TABLE IF NOT EXISTS results (
-                    session_id TEXT PRIMARY KEY,
-                    candidate_name TEXT NOT NULL,
-                    role TEXT DEFAULT '',
-                    industry TEXT DEFAULT '',
-                    persona_name TEXT DEFAULT '',
-                    overall_score REAL DEFAULT 0,
-                    accuracy REAL DEFAULT 0,
-                    depth REAL DEFAULT 0,
-                    communication REAL DEFAULT 0,
-                    ownership REAL DEFAULT 0,
-                    answered_count INTEGER DEFAULT 0,
-                    skipped_count INTEGER DEFAULT 0,
-                    total_questions INTEGER DEFAULT 0,
-                    integrity_score REAL DEFAULT 10,
-                    flagged_count INTEGER DEFAULT 0,
-                    recommendation TEXT DEFAULT '',
-                    by_category TEXT DEFAULT '{}',
-                    skills_demonstrated TEXT DEFAULT '[]',
-                    contradiction_count INTEGER DEFAULT 0,
-                    completed_at REAL NOT NULL
-                )
-            """)
-            await db.execute("""
-                CREATE INDEX IF NOT EXISTS idx_results_completed
-                ON results(completed_at DESC)
-            """)
-            await db.commit()
+            # Check if the old wide-column schema exists and migrate
+            cursor = await db.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name='results'"
+            )
+            table_exists = await cursor.fetchone()
+
+            if table_exists:
+                # Check schema version by looking for the 'data' column
+                col_cursor = await db.execute("PRAGMA table_info(results)")
+                columns = {row[1] for row in await col_cursor.fetchall()}
+                if "data" not in columns:
+                    # Old schema — migrate rows to encrypted blob format
+                    await self._migrate_v1_to_v2(db)
+            else:
+                await db.execute("""
+                    CREATE TABLE results (
+                        session_id TEXT PRIMARY KEY,
+                        data TEXT NOT NULL,
+                        completed_at REAL NOT NULL
+                    )
+                """)
+                await db.execute("""
+                    CREATE INDEX IF NOT EXISTS idx_results_completed
+                    ON results(completed_at DESC)
+                """)
+                await db.commit()
+
         self._initialized = True
 
+    async def _migrate_v1_to_v2(self, db):
+        """Migrate from the old wide-column schema to encrypted blob."""
+        logger.info("Migrating results.db from v1 (wide columns) to v2 (encrypted blob)...")
+        db.row_factory = aiosqlite.Row
+        cursor = await db.execute("SELECT * FROM results ORDER BY completed_at DESC")
+        old_rows = await cursor.fetchall()
+        db.row_factory = None
+
+        # Collect all data before dropping
+        migrated = []
+        for row in old_rows:
+            r = dict(row)
+            sid = r.pop("session_id")
+            completed_at = r.pop("completed_at")
+            # Parse JSON fields that were stored as strings
+            for json_field in ("by_category", "skills_demonstrated"):
+                if json_field in r and isinstance(r[json_field], str):
+                    try:
+                        r[json_field] = json.loads(r[json_field])
+                    except (json.JSONDecodeError, TypeError):
+                        pass
+            # Decrypt any previously encrypted PII fields
+            for field in ("candidate_name", "role", "industry"):
+                val = r.get(field, "")
+                if val:
+                    try:
+                        r[field] = _fernet.decrypt(val.encode()).decode()
+                    except Exception:
+                        pass  # already plaintext
+            migrated.append((sid, r, completed_at))
+
+        # Recreate table with new schema
+        await db.execute("DROP TABLE results")
+        await db.execute("""
+            CREATE TABLE results (
+                session_id TEXT PRIMARY KEY,
+                data TEXT NOT NULL,
+                completed_at REAL NOT NULL
+            )
+        """)
+        await db.execute("""
+            CREATE INDEX IF NOT EXISTS idx_results_completed
+            ON results(completed_at DESC)
+        """)
+
+        # Re-insert with encrypted blobs
+        for sid, data, completed_at in migrated:
+            await db.execute(
+                "INSERT INTO results (session_id, data, completed_at) VALUES (?, ?, ?)",
+                (sid, _encrypt_blob(data), completed_at),
+            )
+        await db.commit()
+        logger.info("Migrated %d results to encrypted blob format.", len(migrated))
+
     async def save(self, session_id: str, data: dict):
-        """Save a completed interview result."""
+        """Save a completed interview result — fully encrypted."""
         await self._ensure_db()
         now = time.time()
         async with aiosqlite.connect(str(self.db_path)) as db:
             await db.execute(
-                """INSERT INTO results (
-                    session_id, candidate_name, role, industry, persona_name,
-                    overall_score, accuracy, depth, communication, ownership,
-                    answered_count, skipped_count, total_questions,
-                    integrity_score, flagged_count, recommendation,
-                    by_category, skills_demonstrated, contradiction_count,
-                    completed_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ON CONFLICT(session_id) DO UPDATE SET
-                    overall_score=excluded.overall_score,
-                    accuracy=excluded.accuracy,
-                    depth=excluded.depth,
-                    communication=excluded.communication,
-                    ownership=excluded.ownership,
-                    recommendation=excluded.recommendation,
-                    completed_at=excluded.completed_at""",
-                (
-                    session_id,
-                    data.get("candidate_name", "Unknown"),
-                    data.get("role", ""),
-                    data.get("industry", ""),
-                    data.get("persona_name", ""),
-                    data.get("overall_score", 0),
-                    data.get("accuracy", 0),
-                    data.get("depth", 0),
-                    data.get("communication", 0),
-                    data.get("ownership", 0),
-                    data.get("answered_count", 0),
-                    data.get("skipped_count", 0),
-                    data.get("total_questions", 0),
-                    data.get("integrity_score", 10),
-                    data.get("flagged_count", 0),
-                    data.get("recommendation", ""),
-                    json.dumps(data.get("by_category", {})),
-                    json.dumps(data.get("skills_demonstrated", [])),
-                    data.get("contradiction_count", 0),
-                    now,
-                ),
+                """INSERT INTO results (session_id, data, completed_at)
+                   VALUES (?, ?, ?)
+                   ON CONFLICT(session_id) DO UPDATE SET
+                       data=excluded.data,
+                       completed_at=excluded.completed_at""",
+                (session_id, _encrypt_blob(data), now),
             )
             await db.commit()
 
@@ -110,17 +155,16 @@ class ResultsStore:
         """Retrieve all results, newest first."""
         await self._ensure_db()
         async with aiosqlite.connect(str(self.db_path)) as db:
-            db.row_factory = aiosqlite.Row
             cursor = await db.execute(
-                "SELECT * FROM results ORDER BY completed_at DESC LIMIT ? OFFSET ?",
+                "SELECT session_id, data, completed_at FROM results ORDER BY completed_at DESC LIMIT ? OFFSET ?",
                 (limit, offset),
             )
             rows = await cursor.fetchall()
             results = []
-            for row in rows:
-                r = dict(row)
-                r["by_category"] = json.loads(r.get("by_category", "{}"))
-                r["skills_demonstrated"] = json.loads(r.get("skills_demonstrated", "[]"))
+            for session_id, enc_data, completed_at in rows:
+                r = _decrypt_blob(enc_data)
+                r["session_id"] = session_id
+                r["completed_at"] = completed_at
                 results.append(r)
             return results
 
@@ -128,16 +172,16 @@ class ResultsStore:
         """Retrieve a single result by session ID."""
         await self._ensure_db()
         async with aiosqlite.connect(str(self.db_path)) as db:
-            db.row_factory = aiosqlite.Row
             cursor = await db.execute(
-                "SELECT * FROM results WHERE session_id = ?", (session_id,)
+                "SELECT data, completed_at FROM results WHERE session_id = ?",
+                (session_id,),
             )
             row = await cursor.fetchone()
             if row is None:
                 return None
-            r = dict(row)
-            r["by_category"] = json.loads(r.get("by_category", "{}"))
-            r["skills_demonstrated"] = json.loads(r.get("skills_demonstrated", "[]"))
+            r = _decrypt_blob(row[0])
+            r["session_id"] = session_id
+            r["completed_at"] = row[1]
             return r
 
     async def count(self) -> int:

@@ -4,22 +4,24 @@ from pydantic import BaseModel, Field
 
 
 class GitHubRequest(BaseModel):
-    username: str = Field(..., min_length=1, max_length=100)
+    username: str = Field(..., min_length=1, max_length=39, pattern=r"^[a-zA-Z0-9](?:[a-zA-Z0-9]|-(?=[a-zA-Z0-9])){0,38}$")
 
 
 class StartInterviewRequest(BaseModel):
-    session_id: str = Field(..., min_length=1)
-    persona_id: str = Field(default="technical_expert")
-    detected_role: str | None = None
-    industry: str | None = None
-    achievement_description: str | None = None
+    session_id: str = Field(..., min_length=1, max_length=64, pattern=r"^[a-zA-Z0-9_-]+$")
+    session_token: str = Field(..., min_length=1, max_length=200, description="Session auth token returned at session creation.")
+    persona_id: str = Field(default="technical_expert", max_length=64, pattern=r"^[a-zA-Z0-9_-]+$")
+    detected_role: str | None = Field(default=None, max_length=200)
+    industry: str | None = Field(default=None, max_length=200)
+    achievement_description: str | None = Field(default=None, max_length=2000)
 
 
 class SubmitAnswerRequest(BaseModel):
-    session_id: str = Field(..., min_length=1)
-    question_id: int | None = None
-    question_index: int = Field(default=0, ge=0)
-    answer: str = Field(default="", max_length=50000)
+    session_id: str = Field(..., min_length=1, max_length=64, pattern=r"^[a-zA-Z0-9_-]+$")
+    session_token: str = Field(..., min_length=1, max_length=200, description="Session auth token returned at session creation.")
+    question_id: int | None = Field(default=None, ge=0, le=10000)
+    question_index: int = Field(default=0, ge=0, le=1000)
+    answer: str = Field(default="", max_length=20000)
     time_seconds: float = Field(default=0, ge=0, le=7200)
     skipped: bool = False
     used_hint: bool = False
@@ -29,19 +31,22 @@ class SubmitAnswerRequest(BaseModel):
 
 
 class ReportRequest(BaseModel):
-    session_id: str = Field(..., min_length=1)
+    session_id: str = Field(..., min_length=1, max_length=64, pattern=r"^[a-zA-Z0-9_-]+$")
+    session_token: str = Field(default="", max_length=200, description="Session auth token. Required for candidate /complete, optional for owner /report.")
 
 
 class HintRequest(BaseModel):
-    session_id: str = Field(..., min_length=1)
-    question_id: int | None = None
-    question_index: int = Field(default=0, ge=0)
+    session_id: str = Field(..., min_length=1, max_length=64, pattern=r"^[a-zA-Z0-9_-]+$")
+    session_token: str = Field(..., min_length=1, max_length=200, description="Session auth token returned at session creation.")
+    question_id: int | None = Field(default=None, ge=0, le=10000)
+    question_index: int = Field(default=0, ge=0, le=1000)
 
 
 class EnrichGitHubRequest(BaseModel):
-    session_id: str = Field(..., min_length=1)
-    username: str = Field(..., min_length=1, max_length=100)
+    session_id: str = Field(..., min_length=1, max_length=64, pattern=r"^[a-zA-Z0-9_-]+$")
+    session_token: str = Field(..., min_length=1, max_length=200, description="Session auth token returned at session creation.")
+    username: str = Field(..., min_length=1, max_length=39, pattern=r"^[a-zA-Z0-9](?:[a-zA-Z0-9]|-(?=[a-zA-Z0-9])){0,38}$")
 
 
 class OwnerLoginRequest(BaseModel):
-    password: str = Field(..., min_length=1)
+    password: str = Field(..., min_length=1, max_length=256)

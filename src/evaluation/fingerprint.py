@@ -83,8 +83,20 @@ def compute_authenticity(responses: list[dict]) -> AuthenticityFingerprint:
 
     # Filter to non-skipped answers with content
     answered = [r for r in responses if not r.get("skipped") and r.get("answer", "").strip()]
+    total = len(responses)
     if len(answered) < 3:
-        fp.overall_score = 100.0  # not enough data to judge
+        # Not enough data for behavioral analysis — cap the score since we
+        # genuinely cannot vouch for authenticity with so few data points,
+        # regardless of whether the candidate answered every question asked.
+        if total > 0:
+            participation = len(answered) / total
+            # Cap at 50: even 100% participation on 1-2 answers is not enough
+            # to run variance/uniformity checks, so we can't award a high score.
+            fp.overall_score = round(min(50.0, participation * 50), 1)
+            fp.flags.append(f"Only {len(answered)}/{total} questions answered — insufficient data for authenticity analysis")
+        else:
+            fp.overall_score = 0.0
+            fp.flags.append("No answers recorded — cannot assess authenticity")
         fp.details["reason"] = "Too few answers for fingerprinting"
         return fp
 

@@ -196,11 +196,6 @@ textarea.input{resize:vertical;min-height:160px;line-height:1.7}
 .ans-chars{font-size:.68rem;color:var(--text-4)}
 .ans-btns{display:flex;gap:6px;flex-wrap:wrap}
 
-/* Voice */
-.voice-btn{position:relative;transition:all .2s}
-.voice-btn.recording{background:var(--red-dim);color:var(--red);border-color:rgba(248,113,113,.2);animation:voice-pulse 1.5s ease-in-out infinite}
-@keyframes voice-pulse{0%,100%{box-shadow:0 0 0 0 rgba(248,113,113,.15)}50%{box-shadow:0 0 0 5px rgba(248,113,113,0)}}
-
 /* Feedback */
 .feedback-bar{display:flex;align-items:center;gap:12px;margin-bottom:12px;min-height:24px;padding:0 2px;opacity:0;transition:opacity .35s}
 .feedback-bar.visible{opacity:1}
@@ -429,9 +424,6 @@ textarea.input{resize:vertical;min-height:160px;line-height:1.7}
       <div class="ans-foot">
         <span class="ans-chars"><span id="char-count">0</span> chars</span>
         <div class="ans-btns">
-          <button class="btn btn-sm btn-icon voice-btn" id="voice-btn" title="Voice input">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
-          </button>
           <button class="btn btn-sm btn-secondary" id="hint-btn">Hint</button>
           <button class="btn btn-sm btn-danger" id="skip-btn">Skip</button>
           <button class="btn btn-sm btn-primary" id="submit-answer-btn">Submit</button>
@@ -474,7 +466,7 @@ textarea.input{resize:vertical;min-height:160px;line-height:1.7}
 <script>
 // ---------- State ----------
 const S = {
-  sessionId:null, profile:null, selectedPersona:null, file:null,
+  sessionId:null, sessionToken:null, profile:null, selectedPersona:null, file:null,
   currentQuestion:null, questionIndex:0, totalQuestions:15,
   timerInterval:null, timerSeconds:0, countdownTotal:100,
   pdfPath:'', introText:'', hintUsed:false, timingStatus:'early', submitting:false,
@@ -546,11 +538,11 @@ beginBtn.addEventListener('click',async()=>{
     if(S.file){
       const form=new FormData();form.append('file',S.file);
       const profile=await api('/upload',form,true);
-      S.sessionId=profile.session_id;S.profile=profile;
-      if(ghUser){try{const enriched=await api('/enrich',{session_id:S.sessionId,username:ghUser});S.profile.github_username=ghUser;S.profile.github_enriched=true;if(enriched.languages)S.profile.skills=[...new Set([...(S.profile.skills||[]),...enriched.languages])]}catch(e){}}
+      S.sessionId=profile.session_id;S.sessionToken=profile.session_token;S.profile=profile;
+      if(ghUser){try{const enriched=await api('/enrich',{session_id:S.sessionId,session_token:S.sessionToken,username:ghUser});S.profile.github_username=ghUser;S.profile.github_enriched=true;if(enriched.languages)S.profile.skills=[...new Set([...(S.profile.skills||[]),...enriched.languages])]}catch(e){}}
     }else{
       const gp=await api('/github',{username:ghUser});
-      S.sessionId=gp.session_id;S.profile=gp;
+      S.sessionId=gp.session_id;S.sessionToken=gp.session_token;S.profile=gp;
     }
     populateProfile(S.profile);showScreen('screen-profile');
   }catch(e){showToast(e.message||'Failed to analyze profile.');show('begin-btn')}finally{hide('welcome-loading')}
@@ -609,7 +601,7 @@ $('start-btn').addEventListener('click',async()=>{
   if(rE.classList.contains('vis')&&rE.value.trim()){overrides.detected_role=rE.value.trim();S.profile.detected_role=overrides.detected_role}
   if(iE.classList.contains('vis')&&iE.value.trim()){overrides.industry=iE.value.trim();S.profile.industry=overrides.industry}
   try{
-    const r=await api('/start',{session_id:S.sessionId,persona_id:S.selectedPersona,...overrides});
+    const r=await api('/start',{session_id:S.sessionId,session_token:S.sessionToken,persona_id:S.selectedPersona,...overrides});
     S.totalQuestions=r.total_questions;S.currentQuestion=r.first_question;S.questionIndex=0;S.introText=r.intro;
     $('iv-name').textContent=S.profile.name||'Candidate';
     $('iv-persona').textContent=r.persona_name||S.selectedPersona;
@@ -641,7 +633,6 @@ function showQuestion(q){
   const oldMsg=document.querySelector('.iv-timeup-msg');if(oldMsg)oldMsg.remove();
   startCountdown();
   LiveFeedback.reset();
-  if(voiceAutoSpeak && VoiceMode.isSupported()){VoiceMode.speak(q.question)}
 }
 
 function startCountdown(){
@@ -670,7 +661,7 @@ function updateCountdown(rem){
 function stopCountdown(){clearInterval(S.timerInterval);if(S.timerSeconds>=S.countdownTotal)S.timingStatus='timeout';else if(S.timerSeconds>=S.countdownTotal*0.9)S.timingStatus='full';else S.timingStatus='early'}
 function autoSubmitTimeout(){
   if(S.submitting)return;
-  VoiceMode.cancelSpeech();VoiceMode.stopListening();LiveFeedback.reset();
+  LiveFeedback.reset();
   hide('question-card');hide('answer-section');
   const msg=document.createElement('div');msg.className='iv-timeup-msg';msg.textContent="Time\u2019s up. Moving to next question\u2026";
   $('screen-interview').insertBefore(msg,$('iv-loading'));
@@ -776,8 +767,6 @@ $('submit-answer-btn').addEventListener('click',()=>submitAnswer(false));
 
 function submitAnswer(skipped){
   if(S.submitting)return;
-  VoiceMode.cancelSpeech();
-  VoiceMode.stopListening();
   const answer=$('answer-input').value.trim();
   if(!skipped&&!answer){showToast('Type an answer or click Skip.');return}
   stopCountdown();
@@ -798,11 +787,11 @@ async function doSubmitAnswer(skipped,fromTimeout){
   }
   hide('question-card');hide('answer-section');show('iv-loading');
   try{
-    const r=await api('/answer',{session_id:S.sessionId,question_index:S.questionIndex,question_id:S.currentQuestion.id,answer:actualSkipped?'':answer,time_seconds:S.timerSeconds,skipped:actualSkipped,used_hint:S.hintUsed,is_followup:!!S.currentQuestion.is_followup,followup_question_text:S.currentQuestion.is_followup?S.currentQuestion.question:'',timing_status:fromTimeout?'timeout':S.timingStatus});
+    const r=await api('/answer',{session_id:S.sessionId,session_token:S.sessionToken,question_index:S.questionIndex,question_id:S.currentQuestion.id,answer:actualSkipped?'':answer,time_seconds:S.timerSeconds,skipped:actualSkipped,used_hint:S.hintUsed,is_followup:!!S.currentQuestion.is_followup,followup_question_text:S.currentQuestion.is_followup?S.currentQuestion.question:'',timing_status:fromTimeout?'timeout':S.timingStatus});
     if(r.done){
       stopCountdown();$('iv-progress-bar').style.width='100%';
       $('iv-loading-msg').textContent='Wrapping up...';
-      await api('/complete',{session_id:S.sessionId});
+      await api('/complete',{session_id:S.sessionId,session_token:S.sessionToken});
       showScreen('screen-report');
     }else if(r.followup&&r.followup.question){
       const fuLabel=r.followup.action==='clarify'?'Follow-up':'Digging deeper';
@@ -816,96 +805,8 @@ async function doSubmitAnswer(skipped,fromTimeout){
   finally{S.submitting=false}
 }
 
-// ---- VOICE MODE (Web Speech API) ----
-const VoiceMode = (() => {
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  const synth = window.speechSynthesis;
-  let recognition = null;
-  let isListening = false;
-  let silenceTimer = null;
-  let autoSubmitTimer = null;
-  const SILENCE_TIMEOUT = 3000;
-  const AUTO_SUBMIT_TIMEOUT = 5000;
-
-  function isSupported() { return !!SpeechRecognition; }
-
-  function cleanTextForSpeech(text) {
-    return text.replace(/["""''`]/g, '').replace(/[#*_~^|\\{}[\]<>@]/g, '').replace(/\s*[—–]\s*/g, ', ').replace(/[()]/g, ', ').replace(/\s*[/:;]\s*/g, ', ').replace(/\.{2,}/g, '.').replace(/,{2,}/g, ',').replace(/\s{2,}/g, ' ').trim();
-  }
-
-  function resetSilenceTimer() {
-    if (silenceTimer) clearTimeout(silenceTimer);
-    if (autoSubmitTimer) clearTimeout(autoSubmitTimer);
-    silenceTimer = setTimeout(() => { if (isListening) stopListening(); }, SILENCE_TIMEOUT);
-    autoSubmitTimer = setTimeout(() => {
-      const answer = $('answer-input').value.trim();
-      if (answer) { stopListening(); submitAnswer(false); }
-    }, AUTO_SUBMIT_TIMEOUT);
-  }
-
-  function startListening() {
-    if (!SpeechRecognition || isListening) return;
-    recognition = new SpeechRecognition();
-    recognition.continuous = true;
-    recognition.interimResults = true;
-    recognition.lang = 'en-US';
-    const textarea = $('answer-input');
-    let finalTranscript = textarea.value;
-    recognition.onresult = (e) => {
-      resetSilenceTimer();
-      let interim = '';
-      for (let i = e.resultIndex; i < e.results.length; i++) {
-        const t = e.results[i][0].transcript;
-        if (e.results[i].isFinal) { finalTranscript += t; } else { interim += t; }
-      }
-      textarea.value = finalTranscript + interim;
-      textarea.dispatchEvent(new Event('input'));
-    };
-    recognition.onerror = (e) => { if (e.error === 'not-allowed') { stopListening(); showToast('Microphone access denied. Check browser permissions.'); } else if (e.error !== 'aborted' && e.error !== 'no-speech') { stopListening(); } };
-    recognition.onend = () => { if (isListening) { try { recognition.start(); } catch(e){} } };
-    recognition.start();
-    isListening = true;
-    resetSilenceTimer();
-    $('voice-btn').classList.add('recording');
-  }
-
-  function stopListening() {
-    isListening = false;
-    if (silenceTimer) { clearTimeout(silenceTimer); silenceTimer = null; }
-    if (autoSubmitTimer) { clearTimeout(autoSubmitTimer); autoSubmitTimer = null; }
-    if (recognition) { try { recognition.stop(); } catch(e){} recognition = null; }
-    $('voice-btn').classList.remove('recording');
-  }
-
-  function cancelSpeech() { if (synth) synth.cancel(); }
-  function toggle() { if (isListening) stopListening(); else startListening(); }
-
-  function speak(text) {
-    if (!synth) return;
-    synth.cancel();
-    const utter = new SpeechSynthesisUtterance(cleanTextForSpeech(text));
-    utter.rate = 1.0; utter.pitch = 1.0;
-    const voices = synth.getVoices();
-    if (voices.length) {
-      const preferred = voices.find(v => v.lang.startsWith('en') && !v.localService) || voices.find(v => v.lang.startsWith('en')) || voices[0];
-      if (preferred) utter.voice = preferred;
-    }
-    synth.speak(utter);
-  }
-
-  return { isSupported, toggle, startListening, stopListening, speak, cancelSpeech };
-})();
-
-$('voice-btn').addEventListener('click', () => {
-  if (!VoiceMode.isSupported()) { showToast('Voice input not supported in this browser.'); return; }
-  VoiceMode.toggle();
-  voiceAutoSpeak = $('voice-btn').classList.contains('recording');
-});
-
-let voiceAutoSpeak = false;
-
 $('new-interview-btn').addEventListener('click',()=>{
-  S.sessionId=null;S.profile=null;S.selectedPersona=null;S.file=null;S.currentQuestion=null;S.questionIndex=0;
+  S.sessionId=null;S.sessionToken=null;S.profile=null;S.selectedPersona=null;S.file=null;S.currentQuestion=null;S.questionIndex=0;
   const dz=$('drop-zone');dz.classList.remove('done');
   dz.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4m0 0l-4 4m4-4l4 4"/><path d="M3 17v2a2 2 0 002 2h14a2 2 0 002-2v-2"/></svg><p>Drag &amp; drop here or <span class="browse">browse</span></p><p class="exts">.pdf .docx .txt</p>`;
   $('github-input').value='';$('begin-btn').disabled=true;show('begin-btn');$('file-input').value='';

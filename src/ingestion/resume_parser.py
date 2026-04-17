@@ -1,9 +1,24 @@
 """Parses resumes (PDF, DOCX, TXT) and uses NVIDIA NIM to extract candidate profile data."""
 
 import json
+import re
 from pathlib import Path
 
 from src.llm_client import LLMClient, parse_json_object
+
+
+def _sanitize_filename(name: str) -> str:
+    """Strip a string down to a safe filesystem name — no path traversal possible.
+
+    Only alphanumerics, underscores, and hyphens survive. Leading dots/dashes
+    are stripped. Result is truncated to 80 characters. Falls back to
+    'candidate' if nothing remains.
+    """
+    safe = re.sub(r"[^a-zA-Z0-9_\-]", "_", name)
+    safe = safe.lstrip("_-.").rstrip("_-.")
+    safe = re.sub(r"_+", "_", safe)  # collapse runs of underscores
+    safe = safe[:80]
+    return safe or "candidate"
 
 
 class ResumeParser:
@@ -179,7 +194,9 @@ Return ONLY valid JSON. No markdown fences, no commentary."""
 
         # Ensure required fields have defaults
         profile.setdefault("name", "Candidate")
-        profile.setdefault("username", profile["name"].lower().replace(" ", "_"))
+        # Sanitize username to prevent path traversal — this is LLM-derived input
+        raw_username = profile.get("username", profile["name"].lower().replace(" ", "_"))
+        profile["username"] = _sanitize_filename(raw_username)
         profile.setdefault("bio", "")
         profile.setdefault("detected_role", "Professional")
         profile.setdefault("industry", "General")
@@ -194,13 +211,19 @@ Return ONLY valid JSON. No markdown fences, no commentary."""
         return profile
 
     def _save_profile(self, profile: dict) -> Path:
-        """Persist the profile to data/ for later reference."""
+        """Persist the profile to data/ — encrypted at rest."""
+        from src.web.session_store import encrypt_bytes
+
         data_dir = Path("data")
         data_dir.mkdir(exist_ok=True)
-        username = profile.get("username", "candidate")
-        filepath = data_dir / f"{username}.json"
+        username = _sanitize_filename(profile.get("username", "candidate"))
+        filepath = (data_dir / f"{username}.json.enc").resolve()
+        # Verify resolved path stays inside data/
+        if not str(filepath).startswith(str(data_dir.resolve())):
+            raise ValueError("Invalid username produced an unsafe file path.")
         # Don't save the full resume text to the JSON (can be very large)
         save_data = {k: v for k, v in profile.items() if k != "resume_text"}
         save_data["resume_excerpt"] = profile.get("resume_text", "")[:1000]
-        filepath.write_text(json.dumps(save_data, indent=2, default=str), encoding="utf-8")
+        plaintext = json.dumps(save_data, indent=2, default=str).encode("utf-8")
+        filepath.write_bytes(encrypt_bytes(plaintext))
         return filepath
