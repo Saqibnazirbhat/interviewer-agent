@@ -13,8 +13,8 @@ Most mock interview tools ask generic textbook questions. Interviewer Agent read
 ## What It Does
 
 1. **Analyzes the candidate** — GitHub repos, languages, commit patterns, or parsed resume (PDF/DOCX/TXT)
-2. **Generates 15 personalized questions** — experience, project, skill, situational, and curveball categories, all grounded in the candidate's real work
-3. **Runs an adaptive browser-based interview** — 100-second countdown per question, follow-up probes, real-time feedback signals
+2. **Generates 20 personalized questions** — experience, project, skill, situational, and curveball categories, all grounded in the candidate's real work
+3. **Runs an adaptive browser-based interview** — 100-second countdown per question, follow-up probes (capped at 5 per interview and counted against the 20-slot total), real-time feedback signals
 4. **Scores every answer** on four dimensions: accuracy, depth, communication, and ownership (1-10 each)
 5. **Detects suspicious patterns** — flags impossibly fast answers, generic responses, and claims that contradict the candidate's profile
 6. **Generates a full hiring report** — Markdown and PDF with scores, strengths, weaknesses, red flags, and a hire/no-hire recommendation
