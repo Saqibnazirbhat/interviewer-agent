@@ -12,7 +12,7 @@ class QuestionGenerator:
         self.llm = LLMClient()
 
     def generate(self, profile: dict, persona: dict) -> list[dict]:
-        """Produce 15 interview questions personalized to the candidate and persona."""
+        """Produce 20 interview questions personalized to the candidate and persona."""
         source = profile.get("source", "github")
         if source == "resume":
             prompt = self._build_resume_prompt(profile, persona)
@@ -162,18 +162,18 @@ CANDIDATE PROFILE:
   CERTIFICATIONS: {', '.join(profile.get('certifications', []))}
 {extra_context}{github_context}
 
-Generate exactly 15 interview questions in this distribution:
-- 4 EXPERIENCE: Questions about their actual jobs listed on the resume. Reference specific roles, companies, and achievements.
-- 4 PROJECT: Questions about their projects or notable achievements. Ask for details, challenges, and outcomes.
-- 3 SKILL: Questions testing their listed skills with practical scenarios relevant to {industry}.
-- 2 SITUATIONAL: Hypothetical but realistic scenarios they might face in their role as a {role} in {industry}.
-- 2 CURVEBALL: Unexpected questions that test creative thinking, adaptability, and thinking on their feet. These should still be relevant to their field.
+Generate exactly 20 interview questions in this distribution:
+- 5 EXPERIENCE: Questions about their actual jobs listed on the resume. Reference specific roles, companies, and achievements.
+- 5 PROJECT: Questions about their projects or notable achievements. Ask for details, challenges, and outcomes.
+- 4 SKILL: Questions testing their listed skills with practical scenarios relevant to {industry}.
+- 3 SITUATIONAL: Hypothetical but realistic scenarios they might face in their role as a {role} in {industry}.
+- 3 CURVEBALL: Unexpected questions that test creative thinking, adaptability, and thinking on their feet. These should still be relevant to their field.
 
 RULES:
 - Every question MUST reference something specific from their resume — actual jobs, skills, projects, or experiences
 - Questions must feel like the interviewer actually read the resume — NEVER generic
 - The language and terminology must be appropriate for {industry} and a {role}
-- Vary difficulty: 4 easy, 6 medium, 5 hard
+- Vary difficulty: 5 easy, 8 medium, 7 hard
 - Stay in character as {persona.get('short_name', persona['name'])}
 - Adapt your vocabulary and references to {industry} — use domain-specific terminology
 
@@ -229,17 +229,17 @@ CANDIDATE PROFILE:
 TOP REPOSITORIES:
 {repos_summary}
 
-Generate exactly 15 interview questions in this distribution:
-- 4 EXPERIENCE: Questions about their work patterns, commit habits, and GitHub activity.
-- 4 PROJECT: Deep questions about their actual repositories, code, and design choices.
-- 3 SKILL: Questions testing their primary languages and frameworks with practical scenarios.
-- 2 SITUATIONAL: Hypothetical scenarios a developer might face (debugging, architecture decisions, team conflicts).
-- 2 CURVEBALL: Unexpected questions that test creative thinking and adaptability.
+Generate exactly 20 interview questions in this distribution:
+- 5 EXPERIENCE: Questions about their work patterns, commit habits, and GitHub activity.
+- 5 PROJECT: Deep questions about their actual repositories, code, and design choices.
+- 4 SKILL: Questions testing their primary languages and frameworks with practical scenarios.
+- 3 SITUATIONAL: Hypothetical scenarios a developer might face (debugging, architecture decisions, team conflicts).
+- 3 CURVEBALL: Unexpected questions that test creative thinking and adaptability.
 
 RULES:
 - Every question MUST reference at least one of their actual repos, languages, or visible patterns
 - No generic textbook questions — ground everything in THEIR work
-- Vary difficulty: 4 easy, 6 medium, 5 hard
+- Vary difficulty: 5 easy, 8 medium, 7 hard
 - Stay in character as {persona.get('short_name', persona['name'])}
 
 Return ONLY a valid JSON array where each element has:
@@ -308,7 +308,7 @@ Return raw JSON only. No markdown fences, no commentary."""
             raise ValueError(f"Expected a JSON array, got {type(questions).__name__}")
 
         if len(questions) < 5:
-            raise ValueError(f"Expected ~15 questions, only got {len(questions)}")
+            raise ValueError(f"Expected ~20 questions, only got {len(questions)}")
 
         # Normalize fields
         for i, q in enumerate(questions):

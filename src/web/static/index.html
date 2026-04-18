@@ -143,7 +143,7 @@
         <span class="iv-tag" id="iv-persona"></span>
       </div>
       <div class="iv-right">
-        <span class="iv-q-count" id="iv-progress">Q1 / 15</span>
+        <span class="iv-q-count" id="iv-progress">Q1 / 20</span>
         <span class="iv-clock" id="iv-timer">100s</span>
       </div>
     </div>
@@ -242,7 +242,7 @@
 // ---------- State ----------
 const S = {
   sessionId:null, sessionToken:null, profile:null, selectedPersona:null, file:null,
-  currentQuestion:null, questionIndex:0, totalQuestions:15,
+  currentQuestion:null, questionIndex:0, totalQuestions:20,
   timerInterval:null, timerSeconds:0, countdownTotal:100,
   pdfPath:'', introText:'', hintUsed:false, timingStatus:'early', submitting:false,
 };
@@ -589,7 +589,8 @@ async function doSubmitAnswer(skipped,fromTimeout){
       showScreen('screen-report');
     }else if(r.followup&&r.followup.question){
       const fuLabel=r.followup.action==='clarify'?'Follow-up':'Digging deeper';
-      S.currentQuestion={id:S.currentQuestion.id,category:S.currentQuestion.category,question:r.followup.question,context:fuLabel,difficulty:S.currentQuestion.difficulty,is_followup:true,index:S.currentQuestion.index};
+      S.currentQuestion={id:S.currentQuestion.id,category:S.currentQuestion.category,question:r.followup.question,context:fuLabel,difficulty:S.currentQuestion.difficulty,is_followup:true,index:r.followup.index};
+      S.questionIndex=r.followup.index;
       hide('iv-loading');hide('q-skeleton');showQuestion(S.currentQuestion);show('question-card');show('answer-section');
     }else{
       S.currentQuestion=r.next_question;S.questionIndex=r.next_question.index;

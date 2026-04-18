@@ -140,7 +140,6 @@ tr.selected{background:var(--accent-dim)}
             <th>Comm.</th>
             <th>Ownership</th>
             <th>Integrity</th>
-            <th>Rec.</th>
             <th>Actions</th>
           </tr>
         </thead>
@@ -208,13 +207,12 @@ function renderStats() {
 function renderTable(results) {
   const tbody = $('results-body');
   if (!results.length) {
-    tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;color:var(--text-4);padding:2rem">No matching results</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;color:var(--text-4);padding:2rem">No matching results</td></tr>';
     return;
   }
   tbody.innerHTML = results.map(r => {
     const isSelected = selected.includes(r.session_id);
     const sc = v => { const c = v >= 7 ? 'green' : v >= 5 ? 'amber' : 'red'; return `<span class="score-pill score-${c}">${v}</span>`; };
-    const rc = r.recommendation === 'Strong Yes' || r.recommendation === 'Yes' ? 'green' : r.recommendation === 'Maybe' ? 'amber' : 'red';
     return `<tr class="${isSelected ? 'selected' : ''}" data-sid="${r.session_id}">
       <td><input type="checkbox" class="compare-check" data-sid="${r.session_id}" ${isSelected ? 'checked' : ''} ${!isSelected && selected.length >= 2 ? 'disabled' : ''}></td>
       <td><strong>${esc(r.candidate_name)}</strong></td>
@@ -225,7 +223,6 @@ function renderTable(results) {
       <td>${sc(r.communication)}</td>
       <td>${sc(r.ownership)}</td>
       <td>${sc(r.integrity_score)}</td>
-      <td><span class="rec-pill rec-${rc}">${r.recommendation}</span></td>
       <td><a class="action-link" href="/replay/${r.session_id}" target="_blank">Replay</a></td>
     </tr>`;
   }).join('');

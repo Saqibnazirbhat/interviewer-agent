@@ -4,7 +4,7 @@ from pydantic import BaseModel, Field
 
 
 class GitHubRequest(BaseModel):
-    username: str = Field(..., min_length=1, max_length=39, pattern=r"^[a-zA-Z0-9](?:[a-zA-Z0-9]|-(?=[a-zA-Z0-9])){0,38}$")
+    username: str = Field(..., min_length=1, max_length=39, pattern=r"^[a-zA-Z0-9](?:-?[a-zA-Z0-9]){0,38}$")
 
 
 class StartInterviewRequest(BaseModel):
@@ -45,7 +45,7 @@ class HintRequest(BaseModel):
 class EnrichGitHubRequest(BaseModel):
     session_id: str = Field(..., min_length=1, max_length=64, pattern=r"^[a-zA-Z0-9_-]+$")
     session_token: str = Field(..., min_length=1, max_length=200, description="Session auth token returned at session creation.")
-    username: str = Field(..., min_length=1, max_length=39, pattern=r"^[a-zA-Z0-9](?:[a-zA-Z0-9]|-(?=[a-zA-Z0-9])){0,38}$")
+    username: str = Field(..., min_length=1, max_length=39, pattern=r"^[a-zA-Z0-9](?:-?[a-zA-Z0-9]){0,38}$")
 
 
 class OwnerLoginRequest(BaseModel):

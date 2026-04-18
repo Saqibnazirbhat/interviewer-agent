@@ -169,6 +169,10 @@ LOGIN_MAX_ATTEMPTS = 5      # max failures per window
 LOGIN_WINDOW = 300           # 5-minute window
 LOGIN_LOCKOUT = 900          # 15-minute lockout after exceeding limit
 
+# Hard ceiling on questions a candidate sees per interview.
+# Follow-ups consume slots, so a chatty interview ends sooner on main questions.
+TOTAL_QUESTION_SLOTS = 20
+
 
 def _check_login_rate(client_ip: str):
     """Raise 429 if the IP has exceeded login attempt limits."""
@@ -527,9 +531,9 @@ async def start_interview(data: StartInterviewRequest):
 
         return JSONResponse({
             "intro": intro,
-            "total_questions": len(questions),
+            "total_questions": TOTAL_QUESTION_SLOTS,
             "first_question": {
-                "index": first_q["adaptive_index"],
+                "index": 0,
                 "id": first_q["id"],
                 "category": first_q["category"],
                 "question": first_q["question"],
@@ -661,6 +665,12 @@ async def submit_answer(data: SubmitAnswerRequest):
 
         session["responses"].append(response)
 
+        # Slot accounting — every saved response (main or follow-up) consumes one slot.
+        # Once we've used all TOTAL_QUESTION_SLOTS, the interview is done regardless
+        # of whether the next item would have been a follow-up or a new main question.
+        slots_used = len(session["responses"])
+        slots_exhausted = slots_used >= TOTAL_QUESTION_SLOTS
+
         # Feed score to adaptive engine
         if engine:
             if skipped:
@@ -670,8 +680,9 @@ async def submit_answer(data: SubmitAnswerRequest):
 
         # Follow-up decision: should we probe deeper before moving on?
         # Don't generate follow-ups for answers that are themselves follow-ups
+        # and don't generate one if we've already exhausted the slot budget.
         followup_data = None
-        if not skipped and answer_text and not data.is_followup:
+        if not slots_exhausted and not skipped and answer_text and not data.is_followup:
             try:
                 from src.interview.followup import FollowUpGenerator
                 # Reuse or create follow-up generator on the session
@@ -694,6 +705,16 @@ async def submit_answer(data: SubmitAnswerRequest):
         # Build result with next question or done flag
         result = {"status": "ok"}
 
+        # Slot budget exhausted — interview is over
+        if slots_exhausted:
+            session["state"] = "completed"
+            result["done"] = True
+            await store.put(data.session_id, session)
+            return JSONResponse(result)
+
+        # The slot the next item (follow-up or main) will occupy (0-based)
+        next_slot = slots_used
+
         # If there's a follow-up, return it instead of the next question
         if followup_data and followup_data.get("action") != "move_on" and followup_data.get("followup_question"):
             result["followup"] = {
@@ -701,6 +722,7 @@ async def submit_answer(data: SubmitAnswerRequest):
                 "question": followup_data["followup_question"],
                 "reason": followup_data.get("reason", ""),
                 "original_question_id": question.get("id"),
+                "index": next_slot,
             }
             result["done"] = False
             # Persist and return early — don't advance to next question
@@ -711,7 +733,7 @@ async def submit_answer(data: SubmitAnswerRequest):
             next_q = engine.pick_next()
             if next_q:
                 result["next_question"] = {
-                    "index": next_q["adaptive_index"],
+                    "index": next_slot,
                     "id": next_q["id"],
                     "category": next_q["category"],
                     "question": next_q["question"],
@@ -727,7 +749,7 @@ async def submit_answer(data: SubmitAnswerRequest):
             if next_index < len(questions):
                 next_q = questions[next_index]
                 result["next_question"] = {
-                    "index": next_index,
+                    "index": next_slot,
                     "id": next_q["id"],
                     "category": next_q["category"],
                     "question": next_q["question"],
@@ -778,22 +800,30 @@ async def complete_interview(data: ReportRequest):
         if not responses:
             raise HTTPException(400, "No responses to evaluate.")
 
-        # Mark unanswered questions as skipped so scoring reflects total question count
-        answered_ids = {r.get("question_id") for r in responses}
-        for q in questions:
-            if q.get("id") not in answered_ids:
-                responses.append({
-                    "question_id": q["id"],
-                    "category": q.get("category", "general"),
-                    "question": q.get("question", ""),
-                    "answer": "",
-                    "skipped": True,
-                    "time_seconds": 0,
-                    "timing_status": "early",
-                    "context": q.get("context", ""),
-                    "difficulty": q.get("difficulty", "medium"),
-                    "ideal_signals": q.get("ideal_signals", []),
-                })
+        # If the candidate ended the interview early (before using all slots),
+        # mark the questions they never reached as skipped so scoring reflects
+        # the gap. If they hit the slot cap, the remaining generated questions
+        # were never part of this interview — don't penalize for them.
+        if len(responses) < TOTAL_QUESTION_SLOTS:
+            answered_ids = {r.get("question_id") for r in responses}
+            slots_left = TOTAL_QUESTION_SLOTS - len(responses)
+            for q in questions:
+                if slots_left <= 0:
+                    break
+                if q.get("id") not in answered_ids:
+                    responses.append({
+                        "question_id": q["id"],
+                        "category": q.get("category", "general"),
+                        "question": q.get("question", ""),
+                        "answer": "",
+                        "skipped": True,
+                        "time_seconds": 0,
+                        "timing_status": "early",
+                        "context": q.get("context", ""),
+                        "difficulty": q.get("difficulty", "medium"),
+                        "ideal_signals": q.get("ideal_signals", []),
+                    })
+                    slots_left -= 1
 
         # Run scoring and report generation in background (owner will see it later)
         from src.evaluation.scorer import AnswerScorer
@@ -977,22 +1007,30 @@ async def generate_report(data: ReportRequest, owner_session: str | None = Cooki
         if not responses:
             raise HTTPException(400, "No responses to evaluate.")
 
-        # Mark unanswered questions as skipped so scoring reflects total question count
-        answered_ids = {r.get("question_id") for r in responses}
-        for q in questions:
-            if q.get("id") not in answered_ids:
-                responses.append({
-                    "question_id": q["id"],
-                    "category": q.get("category", "general"),
-                    "question": q.get("question", ""),
-                    "answer": "",
-                    "skipped": True,
-                    "time_seconds": 0,
-                    "timing_status": "early",
-                    "context": q.get("context", ""),
-                    "difficulty": q.get("difficulty", "medium"),
-                    "ideal_signals": q.get("ideal_signals", []),
-                })
+        # If the candidate ended the interview early (before using all slots),
+        # mark the questions they never reached as skipped so scoring reflects
+        # the gap. If they hit the slot cap, the remaining generated questions
+        # were never part of this interview — don't penalize for them.
+        if len(responses) < TOTAL_QUESTION_SLOTS:
+            answered_ids = {r.get("question_id") for r in responses}
+            slots_left = TOTAL_QUESTION_SLOTS - len(responses)
+            for q in questions:
+                if slots_left <= 0:
+                    break
+                if q.get("id") not in answered_ids:
+                    responses.append({
+                        "question_id": q["id"],
+                        "category": q.get("category", "general"),
+                        "question": q.get("question", ""),
+                        "answer": "",
+                        "skipped": True,
+                        "time_seconds": 0,
+                        "timing_status": "early",
+                        "context": q.get("context", ""),
+                        "difficulty": q.get("difficulty", "medium"),
+                        "ideal_signals": q.get("ideal_signals", []),
+                    })
+                    slots_left -= 1
 
         # Compute score summary
         from src.evaluation.scorer import AnswerScorer

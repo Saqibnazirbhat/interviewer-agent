@@ -70,10 +70,18 @@ TIME TAKEN: {response['time_seconds']}s (timing: {response.get('timing_status', 
 IDEAL ANSWER SIGNALS:
 {ideal}
 
+CALIBRATION — IMPORTANT:
+The candidate had a HARD 100-second limit to type this answer. Grade against what a
+competent human can realistically produce in 100 seconds of typing, not against an
+essay-length ideal. A focused 3-5 sentence answer that hits the core idea and gives one
+concrete example is a strong 7-8, not a mediocre 5. Reserve 9-10 for answers that are
+both correct AND notably specific given the time constraint. Reserve 1-3 for answers
+that are wrong, off-topic, or evasive — not for answers that are merely brief.
+
 Score the answer on these 4 dimensions (1-10 each):
 1. ACCURACY — Is the answer technically correct?
-2. DEPTH — Does it go beyond surface level with specifics and tradeoffs?
-3. COMMUNICATION — Is it clear, structured, and well-articulated?
+2. DEPTH — Did they hit the core idea with at least one concrete specific? (Don't expect exhaustive tradeoff analysis in 100s.)
+3. COMMUNICATION — Is it clear and on-point given the time pressure?
 4. OWNERSHIP — Does the candidate show genuine understanding vs. memorized content?
 
 Return ONLY valid JSON:
@@ -141,12 +149,14 @@ Raw JSON only. No markdown fences."""
         # Raw quality score from answered questions only
         raw_quality = sum(by_dimension.values()) / len(by_dimension)
 
-        # Penalize for low participation — skipping most questions should
-        # significantly reduce the overall score.  participation_rate is
-        # the fraction of questions actually answered.
+        # Soft participation discount — answering every question should not be
+        # required to score well, but skipping most should still hurt. Floor at
+        # 0.75 so a candidate who answers thoughtfully but skips a couple isn't
+        # dragged below their true quality.
         total = len(scored_responses)
         participation_rate = len(answered) / total if total else 0
-        overall = round(raw_quality * participation_rate, 1)
+        participation_factor = max(0.75, participation_rate)
+        overall = round(raw_quality * participation_factor, 1)
 
         return {
             "overall": overall,

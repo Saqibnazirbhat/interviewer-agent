@@ -50,7 +50,8 @@ class TestComputeSummary:
         summary = scorer.compute_summary(responses)
         assert summary["answered_count"] == 1
         assert summary["skipped_count"] == 1
-        assert summary["overall"] == 10.0
+        # Soft participation discount floors at 0.75, so 10 * 0.75 = 7.5
+        assert summary["overall"] == 7.5
 
     def test_by_category(self):
         scorer = _make_scorer()

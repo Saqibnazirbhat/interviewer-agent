@@ -21,11 +21,14 @@ class FollowUpGenerator:
 
     # Maximum follow-ups per question to prevent infinite loops
     MAX_FOLLOWUPS_PER_QUESTION = 2
+    # Maximum total follow-ups across the entire interview
+    MAX_FOLLOWUPS_PER_INTERVIEW = 5
 
     def __init__(self, persona: dict):
         self.llm = LLMClient()
         self.persona = persona
         self._followup_counts: dict[int, int] = {}  # question_id -> count
+        self._total_followups = 0
 
     def should_followup(
         self,
@@ -50,6 +53,10 @@ class FollowUpGenerator:
                 "reason": str (brief explanation of the decision)
         """
         q_id = question.get("id", 0)
+
+        # Don't follow up if interview-wide cap is reached
+        if self._total_followups >= self.MAX_FOLLOWUPS_PER_INTERVIEW:
+            return {"action": "move_on", "followup_question": "", "reason": "Interview follow-up cap reached"}
 
         # Don't follow up if already asked max follow-ups for this question
         if self._followup_counts.get(q_id, 0) >= self.MAX_FOLLOWUPS_PER_QUESTION:
@@ -143,6 +150,7 @@ Raw JSON only. No markdown fences."""
         if action != "move_on" and followup:
             q_id = question.get("id", 0)
             self._followup_counts[q_id] = self._followup_counts.get(q_id, 0) + 1
+            self._total_followups += 1
 
         return {
             "action": action,
@@ -153,3 +161,4 @@ Raw JSON only. No markdown fences."""
     def reset(self):
         """Reset follow-up counts (e.g., for a new interview)."""
         self._followup_counts.clear()
+        self._total_followups = 0

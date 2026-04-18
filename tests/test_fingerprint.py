@@ -37,7 +37,9 @@ class TestComputeAuthenticity:
             {"answer": "Yes", "time_seconds": 5, "category": "skill", "skipped": False},
         ]
         fp = compute_authenticity(responses)
-        assert fp.overall_score == 100.0
+        # 1/1 participation, but capped at 50 since variance/uniformity checks
+        # require >=3 answers to be meaningful.
+        assert fp.overall_score == 50.0
         assert "Too few" in fp.details.get("reason", "")
 
     def test_skipped_answers_excluded(self):
@@ -47,7 +49,8 @@ class TestComputeAuthenticity:
             {"answer": "", "time_seconds": 0, "category": "skill", "skipped": True},
         ]
         fp = compute_authenticity(responses)
-        assert fp.overall_score == 100.0
+        # 0% participation — cannot vouch for authenticity at all.
+        assert fp.overall_score == 0.0
 
     def test_normal_interview_high_score(self):
         """A realistic interview with varied timings and lengths should score high."""

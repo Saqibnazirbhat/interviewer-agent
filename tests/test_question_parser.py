@@ -57,7 +57,7 @@ class TestParseResponse:
         gen = _make_generator()
         questions = [{"id": 1, "question": "Q1"}]
         text = json.dumps(questions)
-        with pytest.raises(ValueError, match="Expected ~15 questions"):
+        with pytest.raises(ValueError, match="Expected ~20 questions"):
             gen._parse_response(text)
 
     def test_no_array_raises(self):
